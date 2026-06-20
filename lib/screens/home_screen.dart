@@ -409,10 +409,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         int cols = c.maxWidth > 1200
                             ? 5
                             : (c.maxWidth > 900
-                                  ? 4
-                                  : (c.maxWidth > 650
-                                        ? 3
-                                        : (c.maxWidth > 400 ? 2 : 1)));
+                                ? 4
+                                : (c.maxWidth > 650
+                                    ? 3
+                                    : (c.maxWidth > 400 ? 2 : 1)));
                         final tiles = <Widget>[
                           ..._sections.map(
                             (s) => _LauncherTile(
@@ -428,16 +428,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             icon: Icons.currency_exchange_rounded,
                             color: const Color(0xFFB8860B),
                             onTap: () async {
-                              final provider = context.read<InventoryProvider>();
+                              final provider =
+                                  context.read<InventoryProvider>();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('لە نوێبوونەوەدایە...')),
+                                const SnackBar(
+                                    content: Text('لە نوێبوونەوەدایە...')),
                               );
                               await provider.fetchDollarRateFromApi();
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('نوێکرایەوە: ${NumberFormat('#,##0').format(provider.dollarRate.toInt())}'),
+                                    content: Text(
+                                        'نوێکرایەوە: ${NumberFormat('#,##0').format(provider.dollarRate.toInt())}'),
                                     backgroundColor: AppColors.emerald,
                                   ),
                                 );
@@ -479,7 +483,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.developer_mode_rounded, size: 16, color: AppColors.muted),
+                        Icon(Icons.developer_mode_rounded,
+                            size: 16, color: AppColors.muted),
                         const SizedBox(width: 8),
                         Text(
                           'دروستکراوە لە لایەن ',
@@ -525,9 +530,12 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.7),
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.6)),
+        border:
+            Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.6)),
         boxShadow: AppShadows.soft,
       ),
       child: Row(
@@ -545,7 +553,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.primary.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 24),
+                    child: Icon(Icons.calendar_month_rounded,
+                        color: AppColors.primary, size: 24),
                   ),
                   const SizedBox(width: 14),
                   const _LiveClock(),
@@ -565,7 +574,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.primary.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.storefront_rounded, color: AppColors.primary, size: 36),
+                    child: Icon(Icons.storefront_rounded,
+                        color: AppColors.primary, size: 36),
                   ),
                   const SizedBox(width: 16),
                   Column(
@@ -581,7 +591,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           letterSpacing: 0.2,
                         ),
                       ),
-                     
                     ],
                   ),
                 ],
@@ -595,15 +604,20 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.5),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.8)),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(isDark ? 0.05 : 0.8)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _iconButton(
-                      icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      icon: isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
                       onTap: () => context.read<ThemeProvider>().toggleTheme(),
                     ),
                     const SizedBox(width: 4),
@@ -672,9 +686,8 @@ class _LauncherTileState extends State<_LauncherTile> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        transform: _hover
-            ? Matrix4.translationValues(0, -4, 0)
-            : Matrix4.identity(),
+        transform:
+            _hover ? Matrix4.translationValues(0, -4, 0) : Matrix4.identity(),
         decoration: BoxDecoration(
           color: widget.color, // Solid color
           borderRadius: BorderRadius.circular(12),
@@ -747,32 +760,35 @@ class _SectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        shape: Border(bottom: BorderSide(color: AppColors.border)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_rounded),
-          tooltip: 'گەڕانەوە',
-          onPressed: () {
-            // Drop focus from any active text field first so a single press
-            // always pops the page (otherwise the first click can be spent
-            // just unfocusing the field).
-            FocusManager.instance.primaryFocus?.unfocus();
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          title,
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink),
-        ),
-      ),
-      body: child,
-    );
+    return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.ink,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            shape: Border(bottom: BorderSide(color: AppColors.border)),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_forward_rounded),
+              tooltip: 'گەڕانەوە',
+              onPressed: () {
+                // Drop focus from any active text field first so a single press
+                // always pops the page (otherwise the first click can be spent
+                // just unfocusing the field).
+                FocusManager.instance.primaryFocus?.unfocus();
+                Navigator.of(context).pop();
+              },
+            ),
+            title: Text(
+              title,
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink),
+            ),
+          ),
+          body: child,
+        ));
   }
 }
 

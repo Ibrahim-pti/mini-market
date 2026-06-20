@@ -2,45 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
   @override
   Widget build(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 600;
     return Container(
-      color: AppColors.background,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(isDesktop ? 28.0 : 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ئاسایش (Security)',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.ink,
-              ),
+        color: AppColors.background,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(isDesktop ? 28.0 : 16.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ئاسایش (Security)',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'پاراستنی سیستەمەکە بە ناوی بەکارهێنەر و پاسوۆرد',
+                  style: TextStyle(color: AppColors.muted, fontSize: 14),
+                ),
+                const SizedBox(height: 28),
+                _buildSecuritySection(context, isDesktop),
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              'پاراستنی سیستەمەکە بە ناوی بەکارهێنەر و پاسوۆرد',
-              style: TextStyle(color: AppColors.muted, fontSize: 14),
-            ),
-            const SizedBox(height: 28),
-            _buildSecuritySection(context, isDesktop),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
+
   Widget _buildSecuritySection(BuildContext context, bool isDesktop) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        bool hasCredentials = auth.username != null && auth.username!.isNotEmpty && auth.password != null && auth.password!.isNotEmpty;
+        bool hasCredentials = auth.username != null &&
+            auth.username!.isNotEmpty &&
+            auth.password != null &&
+            auth.password!.isNotEmpty;
         return Wrap(
-          textDirection: TextDirection.ltr,
-          alignment: WrapAlignment.start,
           spacing: 24,
           runSpacing: 24,
           children: [
@@ -56,7 +61,8 @@ class SettingsScreen extends StatelessWidget {
                 buttonIcon: Icons.person_add_rounded,
                 buttonColor: AppColors.primary,
                 glowColor: AppColors.primary,
-                onPressed: () => _showCredentialsDialog(context, auth, isSetting: true),
+                onPressed: () =>
+                    _showCredentialsDialog(context, auth, isSetting: true),
               )
             else ...[
               _SettingsCard(
@@ -70,7 +76,8 @@ class SettingsScreen extends StatelessWidget {
                 buttonIcon: Icons.edit_rounded,
                 buttonColor: AppColors.primary,
                 glowColor: AppColors.primary,
-                onPressed: () => _showCredentialsDialog(context, auth, isSetting: true),
+                onPressed: () =>
+                    _showCredentialsDialog(context, auth, isSetting: true),
               ),
               _SettingsCard(
                 width: isDesktop ? 400 : double.infinity,
@@ -83,7 +90,8 @@ class SettingsScreen extends StatelessWidget {
                 buttonIcon: Icons.delete_forever_rounded,
                 buttonColor: AppColors.rose,
                 glowColor: AppColors.rose,
-                onPressed: () => _showCredentialsDialog(context, auth, isSetting: false),
+                onPressed: () =>
+                    _showCredentialsDialog(context, auth, isSetting: false),
               ),
             ],
           ],
@@ -91,6 +99,7 @@ class SettingsScreen extends StatelessWidget {
       },
     );
   }
+
   void _showCredentialsDialog(
     BuildContext context,
     AuthProvider auth, {
@@ -102,7 +111,9 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          isSetting ? 'زانیاری هەژماری نوێ بنووسە' : 'دڵنیایت لە سڕینەوەی هەژمار؟',
+          isSetting
+              ? 'زانیاری هەژماری نوێ بنووسە'
+              : 'دڵنیایت لە سڕینەوەی هەژمار؟',
         ),
         content: isSetting
             ? Column(
@@ -140,8 +151,10 @@ class SettingsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               if (isSetting) {
-                if (userController.text.isNotEmpty && passController.text.isNotEmpty) {
-                  await auth.setCredentials(userController.text, passController.text);
+                if (userController.text.isNotEmpty &&
+                    passController.text.isNotEmpty) {
+                  await auth.setCredentials(
+                      userController.text, passController.text);
                   if (ctx.mounted) {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(ctx).showSnackBar(
@@ -180,6 +193,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+
 class _SettingsCard extends StatelessWidget {
   final double width;
   final IconData icon;
@@ -214,12 +228,12 @@ class _SettingsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.border),
           boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

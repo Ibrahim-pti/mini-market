@@ -452,6 +452,31 @@ class InventoryProvider with ChangeNotifier {
         .toList();
   }
 
+  /// All product lines sold across every invoice of a single day (flat list,
+  /// newest first). Used by the Reports screen to show a day's sold items
+  /// directly without drilling into each invoice.
+  Future<List<SaleLineItem>> getLineItemsForDay(String day) async {
+    final db = await _dbHelper.database;
+    final rows = await db.rawQuery('''
+      SELECT items.name as name,
+             sale_items.quantity as quantity,
+             sale_items.price_at_time as price
+      FROM sale_items
+      JOIN sales ON sales.id = sale_items.sale_id
+      LEFT JOIN items ON items.id = sale_items.item_id
+      WHERE substr(sales.date, 1, 10) = ?
+      ORDER BY sales.date DESC
+    ''', [day]);
+
+    return rows
+        .map((r) => SaleLineItem(
+              name: (r['name'] as String?) ?? 'کاڵای سڕاوە',
+              quantity: (r['quantity'] as num?)?.toInt() ?? 0,
+              price: (r['price'] as num?)?.toDouble() ?? 0.0,
+            ))
+        .toList();
+  }
+
   Future<List<double>> getWeeklyRevenue() async {
     final db = await _dbHelper.database;
     List<double> weeklyData = List.filled(7, 0.0);
