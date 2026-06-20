@@ -80,6 +80,9 @@ class MiniMarketApp extends StatelessWidget {
       child: Consumer2<AuthProvider, ThemeProvider>(
         builder: (context, auth, theme, _) {
           return MaterialApp(
+            // Rebuild the whole tree when the theme flips so every screen
+            // (including pushed routes) re-reads the updated AppColors.
+            key: ValueKey(theme.isDarkMode),
             title: 'مارکێت گوڵینا',
             debugShowCheckedModeBanner: false,
             builder: (context, child) {

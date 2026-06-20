@@ -19,7 +19,7 @@ class Expense {
       'date': date.toIso8601String(),
     };
   }
-
+  
   factory Expense.fromMap(Map<String, dynamic> map) {
     return Expense(
       id: map['id'],
