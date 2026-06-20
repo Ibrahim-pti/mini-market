@@ -9,7 +9,6 @@ import 'package:mini_market/theme/app_theme.dart';
 import 'package:mini_market/services/backup_service.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
 import 'pos_screen.dart';
 import 'settings_screen.dart';
@@ -38,9 +37,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Timer _clock;
-  DateTime _now = DateTime.now();
-
   static final List<_Section> _sections = [
     _Section(
       title: 'بەشی فرۆشتن',
@@ -61,12 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
       build: () => const ReportsScreen(),
     ),
     _Section(
-      title: 'داشبۆرد',
-      icon: Icons.bar_chart_rounded,
-      color: const Color(0xFF4169E1), // Royal Blue
-      build: () => const DashboardScreen(),
-    ),
-    _Section(
       title: 'ڕێکخستنەکان',
       icon: Icons.settings_outlined,
       color: const Color(0xFF008B8B), // Dark Cyan
@@ -79,20 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
       build: () => const CalculatorScreen(),
     ),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-  }
-
-  @override
-  void dispose() {
-    _clock.cancel();
-    super.dispose();
-  }
 
   void _open(_Section section) {
     Navigator.of(context).push(
@@ -572,31 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 24),
                   ),
                   const SizedBox(width: 14),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        DateFormat('yyyy/MM/dd').format(_now),
-                        style: TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Directionality(
-                        textDirection: TextDirection.ltr,
-                        child: Text(
-                          '${DateFormat('hh:mm:ss').format(_now)} ${_now.hour >= 12 ? "ئێوارە" : "بەیانی"}',
-                          style: TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const _LiveClock(),
                 ],
               ),
             ),
@@ -806,7 +758,13 @@ class _SectionPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_forward_rounded),
           tooltip: 'گەڕانەوە',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () {
+            // Drop focus from any active text field first so a single press
+            // always pops the page (otherwise the first click can be spent
+            // just unfocusing the field).
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
           title,
@@ -814,6 +772,64 @@ class _SectionPage extends StatelessWidget {
         ),
       ),
       body: child,
+    );
+  }
+}
+
+/// Live date/time display. Keeps its own per-second timer so only this small
+/// widget rebuilds every tick — the expensive blurred background of the home
+/// screen no longer repaints once a second.
+class _LiveClock extends StatefulWidget {
+  const _LiveClock();
+
+  @override
+  State<_LiveClock> createState() => _LiveClockState();
+}
+
+class _LiveClockState extends State<_LiveClock> {
+  late Timer _clock;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _clock.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          DateFormat('yyyy/MM/dd').format(_now),
+          style: TextStyle(
+            color: AppColors.ink,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(
+            '${DateFormat('hh:mm:ss').format(_now)} ${_now.hour >= 12 ? "ئێوارە" : "بەیانی"}',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

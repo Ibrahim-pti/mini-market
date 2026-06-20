@@ -17,29 +17,18 @@ class PosScreen extends StatefulWidget {
 
 class _PosScreenState extends State<PosScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  final FocusNode _scanFocus = FocusNode();
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
   final List<CartItem> _cartItems = [];
   String _query = '';
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scanFocus.requestFocus();
-    });
-  }
-
-  @override
   void dispose() {
     _searchCtrl.dispose();
-    _scanFocus.dispose();
     super.dispose();
   }
 
   void _onScanSubmitted(String barcode) async {
     if (barcode.trim().isEmpty) {
-      _scanFocus.requestFocus();
       return;
     }
     final provider = Provider.of<InventoryProvider>(context, listen: false);
@@ -53,7 +42,6 @@ class _PosScreenState extends State<PosScreen> {
     } else {
       _addItemToCart(result);
     }
-    _scanFocus.requestFocus();
   }
 
   void _addItemToCart(Item item) {
@@ -91,7 +79,6 @@ class _PosScreenState extends State<PosScreen> {
     } else {
       if (mounted) _toast('کڕیار پارەی پێویستی نەداوە!', color: AppColors.rose);
     }
-    _scanFocus.requestFocus();
   }
 
   Future<void> _openPayment(double total) async {
