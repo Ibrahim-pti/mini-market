@@ -774,10 +774,6 @@ class _SectionPage extends StatelessWidget {
               icon: const Icon(Icons.arrow_forward_rounded),
               tooltip: 'گەڕانەوە',
               onPressed: () {
-                // Drop focus from any active text field first so a single press
-                // always pops the page (otherwise the first click can be spent
-                // just unfocusing the field).
-                FocusManager.instance.primaryFocus?.unfocus();
                 Navigator.of(context).pop();
               },
             ),
