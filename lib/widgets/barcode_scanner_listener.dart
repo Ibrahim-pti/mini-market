@@ -34,6 +34,15 @@ class _BarcodeScannerListenerState extends State<BarcodeScannerListener> {
   }
 
   bool _handleKeyEvent(KeyEvent event) {
+    // Only the topmost route should react to scans. When a dialog (e.g. the
+    // add-item dialog) is open above this listener, its own route is no longer
+    // current, so we ignore the scan here and let the dialog's listener handle
+    // it. This prevents a scanned barcode from leaking into the search field
+    // behind the open dialog.
+    if (!mounted) return false;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
+
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.enter) {
         if (_barcodeBuffer.length >= 3) {

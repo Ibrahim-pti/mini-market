@@ -236,6 +236,17 @@ class AppTheme {
 
     return base.copyWith(
       splashFactory: InkSparkle.splashFactory,
+      // This is a desktop app, so disable all page transition animations
+      // (no swipe, no fade). Pages just switch instantly.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.macOS: _NoPageTransitionsBuilder(),
+          TargetPlatform.windows: _NoPageTransitionsBuilder(),
+          TargetPlatform.linux: _NoPageTransitionsBuilder(),
+          TargetPlatform.android: _NoPageTransitionsBuilder(),
+          TargetPlatform.iOS: _NoPageTransitionsBuilder(),
+        },
+      ),
       dividerTheme: DividerThemeData(
         color: AppColors.border,
         thickness: 1,
@@ -540,5 +551,22 @@ class AppSectionTitle extends StatelessWidget {
         if (trailing != null) trailing!,
       ],
     );
+  }
+}
+
+/// No page transition at all — pages switch instantly. Replaces the platform
+/// default (sideways slide on macOS/iOS) which feels like a mobile app.
+class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }
