@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/inventory_provider.dart';
 import '../theme/app_theme.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -32,6 +33,34 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
                 _buildSecuritySection(context, isDesktop),
+                const SizedBox(height: 40),
+                Text(
+                  'بەڕێوەبردنی داتا',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'سفرکردنەوەی هەموو داتاکان و دەستپێکردنەوە لە سەرەتاوە',
+                  style: TextStyle(color: AppColors.muted, fontSize: 14),
+                ),
+                const SizedBox(height: 28),
+                _SettingsCard(
+                  width: isDesktop ? 400 : double.infinity,
+                  icon: Icons.restart_alt_rounded,
+                  color: AppColors.rose,
+                  title: 'سفرکردنەوەی داتا',
+                  description:
+                      'هەموو کاڵاکان، فرۆشتنەکان، ڕاپۆرتەکان، و هەموو داتایەکی تر دەسڕێتەوە. ئەم کارە ناگەڕێتەوە!',
+                  buttonLabel: 'سفرکردنەوە',
+                  buttonIcon: Icons.delete_sweep_rounded,
+                  buttonColor: AppColors.rose,
+                  glowColor: AppColors.rose,
+                  onPressed: () => _showResetDialog(context),
+                ),
               ],
             ),
           ),
@@ -187,6 +216,90 @@ class SettingsScreen extends StatelessWidget {
               backgroundColor: isSetting ? AppColors.primary : AppColors.rose,
             ),
             child: Text(isSetting ? 'پەسەندکردن' : 'بەڵێ، سڕینەوە'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetDialog(BuildContext context) {
+    final TextEditingController confirmController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.rose, size: 28),
+            const SizedBox(width: 10),
+            const Text('سفرکردنەوەی داتا'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ئایا دڵنیایت دەتەوێت هەموو داتاکان بسڕیتەوە؟\n\nئەم کارە ناگەڕێتەوە و هەموو شتێک دەسڕێتەوە:\n• هەموو کاڵاکان\n• هەموو فرۆشتنەکان\n• هەموو ڕاپۆرتەکان\n• هەموو شیفتەکان',
+              style: TextStyle(color: AppColors.inkSoft, height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'بۆ دڵنیابوون، بنووسە: سڕینەوە',
+              style: TextStyle(
+                color: AppColors.rose,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: confirmController,
+              decoration: InputDecoration(
+                hintText: 'سڕینەوە',
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.rose),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'پاشگەزبوونەوە',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (confirmController.text.trim() == 'سڕینەوە') {
+                final provider = context.read<InventoryProvider>();
+                await provider.resetAllData();
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content:
+                          const Text('هەموو داتاکان بە سەرکەوتوویی سڕانەوە'),
+                      backgroundColor: AppColors.emerald,
+                    ),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(
+                    content:
+                        const Text('تکایە وشەی "سڕینەوە" بنووسە بۆ دڵنیابوون'),
+                    backgroundColor: AppColors.rose,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.rose,
+            ),
+            child: const Text('بەڵێ، سفرکردنەوە'),
           ),
         ],
       ),

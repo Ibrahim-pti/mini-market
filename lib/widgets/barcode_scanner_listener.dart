@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../utils/barcode_utils.dart';
 
 class BarcodeScannerListener extends StatefulWidget {
   final Widget child;
@@ -46,13 +47,14 @@ class _BarcodeScannerListenerState extends State<BarcodeScannerListener> {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.enter) {
         if (_barcodeBuffer.length >= 3) {
-          // A complete barcode was scanned
-          widget.onBarcodeScanned(_barcodeBuffer);
+          // A complete barcode was scanned — normalize digits
+          widget.onBarcodeScanned(normalizeBarcode(_barcodeBuffer));
         }
         _barcodeBuffer = '';
       } else if (event.character != null) {
         final now = DateTime.now();
-        if (_lastKeyPressTime == null || now.difference(_lastKeyPressTime!) > widget.scanTimeout) {
+        if (_lastKeyPressTime == null ||
+            now.difference(_lastKeyPressTime!) > widget.scanTimeout) {
           // Slow typing -> Reset buffer (this might be a human typing in a normal text field)
           _barcodeBuffer = event.character!;
         } else {
@@ -62,9 +64,9 @@ class _BarcodeScannerListenerState extends State<BarcodeScannerListener> {
         _lastKeyPressTime = now;
       }
     }
-    // Always return false so we don't accidentally block normal text fields 
+    // Always return false so we don't accidentally block normal text fields
     // when the user is actually typing normally.
-    return false; 
+    return false;
   }
 
   @override

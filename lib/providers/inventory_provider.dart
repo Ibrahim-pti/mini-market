@@ -10,6 +10,7 @@ import '../models/shift_model.dart';
 import '../models/daily_report.dart';
 import '../database/database_helper.dart';
 import '../services/backup_service.dart';
+import '../utils/barcode_utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -67,21 +68,24 @@ class InventoryProvider with ChangeNotifier {
 
   Future<void> fetchDollarRateFromApi() async {
     try {
-      final response = await http.get(Uri.parse('https://amro.tech/exchangerate'));
+      final response =
+          await http.get(Uri.parse('https://amro.tech/exchangerate'));
       if (response.statusCode == 200) {
         final body = response.body;
         double? newRate;
 
         // Since this is an HTML page, we extract the rate using Regex.
         // Looking for &quot;usDollar&quot;:155250 or "usDollar":155250
-        final regex = RegExp(r'(?:&quot;|")usDollar(?:&quot;|")\s*:\s*([\d\.]+)');
+        final regex =
+            RegExp(r'(?:&quot;|")usDollar(?:&quot;|")\s*:\s*([\d\.]+)');
         final match = regex.firstMatch(body);
 
         if (match != null && match.groupCount >= 1) {
           newRate = double.tryParse(match.group(1)!);
         } else {
           // Fallback to IQD key
-          final regexIqd = RegExp(r'(?:&quot;|")IQD(?:&quot;|")\s*:\s*([\d\.]+)');
+          final regexIqd =
+              RegExp(r'(?:&quot;|")IQD(?:&quot;|")\s*:\s*([\d\.]+)');
           final matchIqd = regexIqd.firstMatch(body);
           if (matchIqd != null && matchIqd.groupCount >= 1) {
             newRate = double.tryParse(matchIqd.group(1)!);
@@ -118,6 +122,15 @@ class InventoryProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Wipes every table in the database and reloads the provider state.
+  Future<void> resetAllData() async {
+    await _dbHelper.resetAllData();
+    _items = [];
+    _searchResults = [];
+    _currentShift = null;
+    notifyListeners();
+  }
+
   Future<void> openShift(double startingCash) async {
     final shift = Shift(
       startTime: DateTime.now().toIso8601String(),
@@ -131,18 +144,25 @@ class InventoryProvider with ChangeNotifier {
     if (_currentShift == null) return;
     final db = await _dbHelper.database;
     final start = _currentShift!.startTime;
-    
-    final salesRes = await db.rawQuery('SELECT SUM(total_amount) as sum FROM sales WHERE date >= ?', [start]);
-    double totalSales = (salesRes.isNotEmpty && salesRes.first['sum'] != null) ? salesRes.first['sum'] as double : 0.0;
-    
-    final expRes = await db.rawQuery('SELECT SUM(amount) as sum FROM expenses WHERE date >= ?', [start]);
-    double totalExp = (expRes.isNotEmpty && expRes.first['sum'] != null) ? expRes.first['sum'] as double : 0.0;
-    
+
+    final salesRes = await db.rawQuery(
+        'SELECT SUM(total_amount) as sum FROM sales WHERE date >= ?', [start]);
+    double totalSales = (salesRes.isNotEmpty && salesRes.first['sum'] != null)
+        ? salesRes.first['sum'] as double
+        : 0.0;
+
+    final expRes = await db.rawQuery(
+        'SELECT SUM(amount) as sum FROM expenses WHERE date >= ?', [start]);
+    double totalExp = (expRes.isNotEmpty && expRes.first['sum'] != null)
+        ? expRes.first['sum'] as double
+        : 0.0;
+
     _currentShift!.endTime = DateTime.now().toIso8601String();
-    _currentShift!.expectedEndingCash = _currentShift!.startingCash + totalSales - totalExp;
+    _currentShift!.expectedEndingCash =
+        _currentShift!.startingCash + totalSales - totalExp;
     _currentShift!.actualEndingCash = actualCash;
     _currentShift!.status = 'closed';
-    
+
     await _dbHelper.updateShift(_currentShift!);
     await loadCurrentShift();
   }
@@ -162,10 +182,11 @@ class InventoryProvider with ChangeNotifier {
     if (query.isEmpty) {
       _searchResults = _items;
     } else {
+      final normalizedQuery = normalizeBarcode(query);
       _searchResults = _items
           .where((item) =>
               item.name.toLowerCase().contains(query.toLowerCase()) ||
-              item.barcode.contains(query))
+              normalizeBarcode(item.barcode).contains(normalizedQuery))
           .toList();
     }
     notifyListeners();
@@ -253,13 +274,14 @@ class InventoryProvider with ChangeNotifier {
   Future<double> getTodayRevenue() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     final result = await db.rawQuery(
       'SELECT SUM(total_amount) as total FROM sales WHERE date >= ?',
       [startOfDay],
     );
-    
+
     if (result.isNotEmpty && result.first['total'] != null) {
       return result.first['total'] as double;
     }
@@ -269,13 +291,14 @@ class InventoryProvider with ChangeNotifier {
   Future<int> getTodaySalesCount() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM sales WHERE date >= ?',
       [startOfDay],
     );
-    
+
     if (result.isNotEmpty && result.first['count'] != null) {
       return result.first['count'] as int;
     }
@@ -285,8 +308,9 @@ class InventoryProvider with ChangeNotifier {
   Future<double> getTodayProfit() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     // Profit = SUM( (price_at_time - cost_at_time) * quantity )
     final result = await db.rawQuery('''
       SELECT SUM((price_at_time - cost_at_time) * quantity) as profit 
@@ -294,7 +318,7 @@ class InventoryProvider with ChangeNotifier {
       INNER JOIN sales ON sales.id = sale_items.sale_id 
       WHERE sales.date >= ?
     ''', [startOfDay]);
-    
+
     if (result.isNotEmpty && result.first['profit'] != null) {
       return result.first['profit'] as double;
     }
@@ -304,13 +328,14 @@ class InventoryProvider with ChangeNotifier {
   Future<double> getTodayExpenses() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     final result = await db.rawQuery(
       'SELECT SUM(amount) as total FROM expenses WHERE date >= ?',
       [startOfDay],
     );
-    
+
     if (result.isNotEmpty && result.first['total'] != null) {
       return result.first['total'] as double;
     }
@@ -320,8 +345,9 @@ class InventoryProvider with ChangeNotifier {
   Future<List<Expense>> getTodayExpenseList() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     final result = await db.rawQuery(
       'SELECT * FROM expenses WHERE date >= ? ORDER BY date DESC',
       [startOfDay],
@@ -371,8 +397,9 @@ class InventoryProvider with ChangeNotifier {
   Future<List<Sale>> getTodaySales() async {
     final db = await _dbHelper.database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-    
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).toIso8601String();
+
     final result = await db.query(
       'sales',
       where: 'date >= ?',
@@ -480,18 +507,22 @@ class InventoryProvider with ChangeNotifier {
   Future<List<double>> getWeeklyRevenue() async {
     final db = await _dbHelper.database;
     List<double> weeklyData = List.filled(7, 0.0);
-    
+
     final today = DateTime.now();
     for (int i = 0; i < 7; i++) {
       final targetDate = today.subtract(Duration(days: 6 - i));
-      final startOfDay = DateTime(targetDate.year, targetDate.month, targetDate.day).toIso8601String();
-      final endOfDay = DateTime(targetDate.year, targetDate.month, targetDate.day, 23, 59, 59).toIso8601String();
-      
+      final startOfDay =
+          DateTime(targetDate.year, targetDate.month, targetDate.day)
+              .toIso8601String();
+      final endOfDay = DateTime(
+              targetDate.year, targetDate.month, targetDate.day, 23, 59, 59)
+          .toIso8601String();
+
       final result = await db.rawQuery(
         'SELECT SUM(total_amount) as total FROM sales WHERE date >= ? AND date <= ?',
         [startOfDay, endOfDay],
       );
-      
+
       if (result.isNotEmpty && result.first['total'] != null) {
         weeklyData[i] = result.first['total'] as double;
       }

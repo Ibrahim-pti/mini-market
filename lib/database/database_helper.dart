@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/item_model.dart';
+import '../utils/barcode_utils.dart';
 import '../models/shift_model.dart';
 
 class DatabaseHelper {
@@ -43,7 +44,8 @@ class DatabaseHelper {
 
   Future<Database> _initDB(String filePath) async {
     // Ensure ffi is initialized for desktop
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
@@ -183,15 +185,19 @@ CREATE TABLE sale_items (
 ''');
     }
     if (oldVersion < 3) {
-      await db.execute('ALTER TABLE items ADD COLUMN cost_price REAL DEFAULT 0.0');
-      await db.execute('ALTER TABLE sale_items ADD COLUMN cost_at_time REAL DEFAULT 0.0');
+      await db
+          .execute('ALTER TABLE items ADD COLUMN cost_price REAL DEFAULT 0.0');
+      await db.execute(
+          'ALTER TABLE sale_items ADD COLUMN cost_at_time REAL DEFAULT 0.0');
       await db.execute('ALTER TABLE items ADD COLUMN image_path TEXT');
     }
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE items ADD COLUMN expiry_date TEXT');
-      await db.execute('ALTER TABLE items ADD COLUMN wholesale_price REAL DEFAULT 0.0');
+      await db.execute(
+          'ALTER TABLE items ADD COLUMN wholesale_price REAL DEFAULT 0.0');
       await db.execute('ALTER TABLE items ADD COLUMN category TEXT');
-      await db.execute('ALTER TABLE items ADD COLUMN unit_type TEXT DEFAULT "دانە"');
+      await db.execute(
+          'ALTER TABLE items ADD COLUMN unit_type TEXT DEFAULT "دانە"');
     }
     if (oldVersion < 5) {
       await db.execute('''
@@ -275,7 +281,12 @@ CREATE TABLE IF NOT EXISTS shifts (
 
   Future<int> insertItem(Item item) async {
     final db = await instance.database;
-    return await db.insert('items', item.toMap());
+    // Normalize barcode so Kurdish/Arabic digits are stored as Latin.
+    final map = item.toMap();
+    if (map['barcode'] != null) {
+      map['barcode'] = normalizeBarcode(map['barcode'] as String);
+    }
+    return await db.insert('items', map);
   }
 
   Future<List<Item>> getAllItems() async {
@@ -286,10 +297,11 @@ CREATE TABLE IF NOT EXISTS shifts (
 
   Future<Item?> getItemByBarcode(String barcode) async {
     final db = await instance.database;
+    final normalized = normalizeBarcode(barcode);
     final result = await db.query(
       'items',
       where: 'barcode = ? COLLATE NOCASE',
-      whereArgs: [barcode],
+      whereArgs: [normalized],
     );
 
     if (result.isNotEmpty) {
@@ -301,9 +313,13 @@ CREATE TABLE IF NOT EXISTS shifts (
 
   Future<int> updateItem(Item item) async {
     final db = await instance.database;
+    final map = item.toMap();
+    if (map['barcode'] != null) {
+      map['barcode'] = normalizeBarcode(map['barcode'] as String);
+    }
     return db.update(
       'items',
-      item.toMap(),
+      map,
       where: 'id = ?',
       whereArgs: [item.id],
     );
@@ -326,12 +342,14 @@ CREATE TABLE IF NOT EXISTS shifts (
 
   Future<int> updateShift(Shift shift) async {
     final db = await instance.database;
-    return await db.update('shifts', shift.toMap(), where: 'id = ?', whereArgs: [shift.id]);
+    return await db.update('shifts', shift.toMap(),
+        where: 'id = ?', whereArgs: [shift.id]);
   }
 
   Future<Shift?> getOpenShift() async {
     final db = await instance.database;
-    final maps = await db.query('shifts', where: 'status = ?', whereArgs: ['open'], limit: 1);
+    final maps = await db.query('shifts',
+        where: 'status = ?', whereArgs: ['open'], limit: 1);
     if (maps.isNotEmpty) {
       return Shift.fromMap(maps.first);
     }
@@ -345,9 +363,10 @@ CREATE TABLE IF NOT EXISTS shifts (
   }
 
   // ===================== ITEMS =====================
-  Future<int> insertSale(double totalAmount, List<Map<String, dynamic>> saleItems) async {
+  Future<int> insertSale(
+      double totalAmount, List<Map<String, dynamic>> saleItems) async {
     final db = await instance.database;
-    
+
     return await db.transaction((txn) async {
       final saleId = await txn.insert('sales', {
         'total_amount': totalAmount,
@@ -366,5 +385,21 @@ CREATE TABLE IF NOT EXISTS shifts (
   Future<String> getDatabasePath() async {
     final dbPath = await getApplicationSupportDirectory();
     return join(dbPath.path, 'mini_market.db');
+  }
+
+  /// Deletes all rows from every table, effectively resetting the app data.
+  Future<void> resetAllData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('sale_items');
+      await txn.delete('sales');
+      await txn.delete('items');
+      await txn.delete('expenses');
+      await txn.delete('shifts');
+      await txn.delete('customers');
+      await txn.delete('suppliers');
+      await txn.delete('debts');
+      await txn.delete('employees');
+    });
   }
 }

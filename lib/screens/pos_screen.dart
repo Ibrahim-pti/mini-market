@@ -7,6 +7,7 @@ import '../models/cart_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/barcode_scanner_listener.dart';
 import '../widgets/payment_dialog.dart';
+import '../utils/barcode_utils.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 class PosScreen extends StatefulWidget {
@@ -106,14 +107,18 @@ class _PosScreenState extends State<PosScreen> {
             }
             return Column(
               children: [
-                Expanded(flex: 5, child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: _productsPane(),
-                )),
-                Expanded(flex: 4, child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: _cartPane(),
-                )),
+                Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: _productsPane(),
+                    )),
+                Expanded(
+                    flex: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _cartPane(),
+                    )),
               ],
             );
           },
@@ -159,7 +164,9 @@ class _PosScreenState extends State<PosScreen> {
               final items = provider.items.where((it) {
                 if (q.isEmpty) return true;
                 return it.name.toLowerCase().contains(q) ||
-                    it.barcode.toLowerCase().contains(q) ||
+                    normalizeBarcode(it.barcode)
+                        .toLowerCase()
+                        .contains(normalizeBarcode(q)) ||
                     (it.category ?? '').toLowerCase().contains(q);
               }).toList();
 
@@ -168,9 +175,7 @@ class _PosScreenState extends State<PosScreen> {
               return LayoutBuilder(builder: (context, c) {
                 int cols = c.maxWidth > 1100
                     ? 5
-                    : (c.maxWidth > 820
-                        ? 4
-                        : (c.maxWidth > 560 ? 3 : 2));
+                    : (c.maxWidth > 820 ? 4 : (c.maxWidth > 560 ? 3 : 2));
                 return GridView.builder(
                   padding: EdgeInsets.zero,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -199,7 +204,9 @@ class _PosScreenState extends State<PosScreen> {
               size: 48, color: AppColors.borderStrong),
           const SizedBox(height: 12),
           Text(
-            _query.isEmpty ? 'هیچ کاڵایەک لە کۆگا نییە' : 'هیچ کاڵایەک نەدۆزرایەوە',
+            _query.isEmpty
+                ? 'هیچ کاڵایەک لە کۆگا نییە'
+                : 'هیچ کاڵایەک نەدۆزرایەوە',
             style: TextStyle(color: AppColors.muted, fontSize: 15),
           ),
         ],
@@ -209,77 +216,76 @@ class _PosScreenState extends State<PosScreen> {
 
   Widget _productCard(Item item) {
     return Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-          boxShadow: AppShadows.card,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Container(
-                color: AppColors.surfaceAlt,
-                padding: const EdgeInsets.all(8),
-                child: _itemImage(item),
-              ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.card,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              color: AppColors.surfaceAlt,
+              padding: const EdgeInsets.all(8),
+              child: _itemImage(item),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text('${_currencyFormat.format(item.price)} د.ع',
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text('${_currencyFormat.format(item.price)} د.ع',
+                    style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-              child: SizedBox(
-                width: double.infinity,
-                child: Material(
-                  color: AppColors.primarySoft,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            child: SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: InkWell(
+                  onTap: () => _addItemToCart(item),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
-                  child: InkWell(
-                    onTap: () => _addItemToCart(item),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_rounded,
-                              color: AppColors.primary,
-                              size: 16),
-                          const SizedBox(width: 4),
-                          Text('زیادکردن',
-                              style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_rounded,
+                            color: AppColors.primary, size: 16),
+                        const SizedBox(width: 4),
+                        Text('زیادکردن',
+                            style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold)),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
