@@ -47,17 +47,9 @@ class _PosScreenState extends State<PosScreen> {
   void _addItemToCart(Item item) {
     int index = _cartItems.indexWhere((c) => c.item.id == item.id);
     if (index >= 0) {
-      if (_cartItems[index].quantity < item.quantity) {
-        setState(() => _cartItems[index].quantity++);
-      } else {
-        _toast('کاڵای "${item.name}" بەس ئەوەندەی لە کۆگا ماوە!');
-      }
+      setState(() => _cartItems[index].quantity++);
     } else {
-      if (item.quantity > 0) {
-        setState(() => _cartItems.insert(0, CartItem(item: item)));
-      } else {
-        _toast('کاڵای "${item.name}" نەماوە لە کۆگا!');
-      }
+      setState(() => _cartItems.insert(0, CartItem(item: item)));
     }
   }
 
@@ -216,11 +208,7 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   Widget _productCard(Item item) {
-    final low = item.quantity <= 5;
-    final out = item.quantity <= 0;
-    return Opacity(
-      opacity: out ? 0.55 : 1,
-      child: Container(
+    return Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -232,29 +220,10 @@ class _PosScreenState extends State<PosScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      color: AppColors.surfaceAlt,
-                      padding: const EdgeInsets.all(8),
-                      child: _itemImage(item),
-                    ),
-                  ),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: AppBadge(
-                      text: out
-                          ? 'تەواوبوو'
-                          : (low ? 'کەم: ${item.quantity}' : 'ماوە: ${item.quantity}'),
-                      color: out
-                          ? AppColors.muted
-                          : (low ? AppColors.rose : AppColors.emerald),
-                      bg: AppColors.surface,
-                    ),
-                  ),
-                ],
+              child: Container(
+                color: AppColors.surfaceAlt,
+                padding: const EdgeInsets.all(8),
+                child: _itemImage(item),
               ),
             ),
             Padding(
@@ -283,10 +252,10 @@ class _PosScreenState extends State<PosScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: Material(
-                  color: out ? AppColors.surfaceAlt : AppColors.primarySoft,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                   child: InkWell(
-                    onTap: out ? null : () => _addItemToCart(item),
+                    onTap: () => _addItemToCart(item),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -294,13 +263,12 @@ class _PosScreenState extends State<PosScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_rounded,
-                              color: out ? AppColors.muted : AppColors.primary,
+                              color: AppColors.primary,
                               size: 16),
                           const SizedBox(width: 4),
                           Text('زیادکردن',
                               style: TextStyle(
-                                  color:
-                                      out ? AppColors.muted : AppColors.primary,
+                                  color: AppColors.primary,
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold)),
                         ],
@@ -312,7 +280,6 @@ class _PosScreenState extends State<PosScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -466,11 +433,7 @@ class _PosScreenState extends State<PosScreen> {
                         color: AppColors.ink)),
               ),
               _qtyBtn(Icons.add_rounded, () {
-                if (cartItem.quantity < cartItem.item.quantity) {
-                  setState(() => cartItem.quantity++);
-                } else {
-                  _toast('بڕی کۆگا تەواوبوو');
-                }
+                setState(() => cartItem.quantity++);
               }),
             ],
           ),

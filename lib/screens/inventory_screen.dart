@@ -113,7 +113,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             SizedBox(width: 52),
                             _HeaderCell('بارکۆد', flex: 2),
                             _HeaderCell('ناوی کاڵا', flex: 3),
-                            _HeaderCell('بڕی ماوە', flex: 2),
                             _HeaderCell('نرخ', flex: 2),
                             SizedBox(
                               width: 96,
@@ -150,7 +149,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
   Widget _itemRow(
       BuildContext context, InventoryProvider provider, Item item) {
-    final low = item.quantity <= 5;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -181,26 +179,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             child: Text(item.name,
                 style: TextStyle(
                     fontWeight: FontWeight.bold, color: AppColors.ink)),
-          ),
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: low ? AppColors.roseSoft : AppColors.emeraldSoft,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text('${item.quantity}',
-                    style: TextStyle(
-                        color: low
-                            ? AppColors.rose
-                            : const Color(0xFF059669),
-                        fontWeight: FontWeight.bold)),
-              ),
-            ),
           ),
           Expanded(
             flex: 2,

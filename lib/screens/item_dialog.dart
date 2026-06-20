@@ -78,7 +78,7 @@ class _ItemDialogState extends State<ItemDialog> {
         name: _nameCtrl.text.trim(),
         price: double.parse(_priceCtrl.text.trim()),
         costPrice: widget.item?.costPrice ?? 0.0,
-        quantity: widget.item?.quantity ?? 0,
+        quantity: widget.item?.quantity ?? 999999, // بڕ بەکارناهێنرێت — هەمیشە بەردەست
         imagePath: _selectedImagePath,
       );
       if (widget.item == null) {
