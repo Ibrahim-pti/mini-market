@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, FlutterError, FlutterErrorDetails;
 import 'package:provider/provider.dart';
 import 'providers/inventory_provider.dart';
 import 'providers/auth_provider.dart';
@@ -10,6 +10,22 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Workaround بۆ بەگی Flutter لەسەر دیسکتۆپ کاتێک لایەی نووسینی نا-لاتین
+  // (کوردی/فارسی/عەرەبی) بەکاردەهێنرێت: هەندێک KeyDownEvent دووجار دێن و
+  // assertion ـی "physical key is already pressed" هەڵدەستێنن. ئەمە لە
+  // debug mode دا تەنها نۆیزی لۆگە و کاریگەری لەسەر ئەرکی ئەپە نییە، بۆیە
+  // تەنها ئەو هەڵە تایبەتە بێدەنگ دەکەین و هەڵەکانی تر وەک خۆیان دەمێننەوە.
+  final originalOnError = FlutterError.onError;
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final exception = details.exception;
+    if (exception is AssertionError &&
+        exception.message.toString().contains('is already pressed')) {
+      return; // بەگی ناسراوی کیبۆردی دیسکتۆپی Flutter — پشتگوێ دەخرێت
+    }
+    originalOnError?.call(details);
+  };
+
   runApp(const MiniMarketApp());
 }
 

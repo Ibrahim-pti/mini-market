@@ -92,12 +92,12 @@ class InventoryProvider with ChangeNotifier {
         if (newRate != null && newRate > 0) {
           if (_dollarRate != newRate) {
             await updateDollarRate(newRate);
-            print('Dollar rate updated from amro.tech: \$newRate');
+            print('Dollar rate updated from amro.tech: $newRate');
           }
         }
       }
     } catch (e) {
-      print('Error fetching dollar rate from amro.tech: \$e');
+      print('Error fetching dollar rate from amro.tech: $e');
     }
   }
 
