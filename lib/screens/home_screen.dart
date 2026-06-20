@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       build: () => const PosScreen(),
     ),
     _Section(
-      title: 'کاڵاکان',
+      title: 'بەرهەم',
       icon: Icons.inventory_2_outlined,
       color: const Color(0xFF008080), // Teal
       build: () => const InventoryScreen(),
