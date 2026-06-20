@@ -210,8 +210,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   onPressed: () => _setPreset(null),
                   icon: Icon(Icons.close_rounded,
                       size: 16, color: AppColors.rose),
-                  label: Text('سڕینەوە',
-                      style: TextStyle(color: AppColors.rose)),
+                  label:
+                      Text('سڕینەوە', style: TextStyle(color: AppColors.rose)),
                 ),
             ],
           ),
@@ -287,8 +287,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style:
-                          TextStyle(color: AppColors.muted, fontSize: 11)),
+                      style: TextStyle(color: AppColors.muted, fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(
                     value == null ? 'هەڵبژێرە' : _dateFormat.format(value),
@@ -494,31 +493,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   void _showDayInvoices(DailySalesReport report) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: AppColors.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.7,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          builder: (ctx, scrollController) {
-            return Column(
+        return Dialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: Container(
+            width: 600,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -530,7 +520,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         child: Text(
                           'فرۆشراوەکانی ${_dayLabel(report.date)} (${report.day})',
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.ink,
                           ),
@@ -544,31 +534,43 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           color: AppColors.emerald,
                         ),
                       ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        color: AppColors.muted,
+                        tooltip: 'داخستن',
+                      ),
                     ],
                   ),
                 ),
                 Divider(height: 1, color: AppColors.border),
-                Expanded(
+                Flexible(
                   child: FutureBuilder<List<Sale>>(
                     future: context
                         .read<InventoryProvider>()
                         .getSalesForDay(report.day),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
                       }
                       final sales = snapshot.data ?? [];
                       if (sales.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'هیچ فرۆشراوێک نییە',
-                            style: TextStyle(color: AppColors.muted),
+                        return Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Center(
+                            child: Text(
+                              'هیچ فرۆشراوێک نییە',
+                              style: TextStyle(color: AppColors.muted),
+                            ),
                           ),
                         );
                       }
                       return ListView.separated(
-                        controller: scrollController,
+                        shrinkWrap: true,
                         padding: const EdgeInsets.all(16),
                         itemCount: sales.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -578,8 +580,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ),
         );
       },
     );
