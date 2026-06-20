@@ -312,7 +312,7 @@ class _AddButton extends StatelessWidget {
             children: [
               Icon(Icons.add_rounded, color: Colors.white, size: 22),
               SizedBox(width: 8),
-              Text('زیادکردنی کاڵا',
+              Text('زیادکردنی مادە',
                   style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

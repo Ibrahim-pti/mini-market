@@ -20,8 +20,6 @@ class _ItemDialogState extends State<ItemDialog> {
   late TextEditingController _barcodeCtrl;
   late TextEditingController _nameCtrl;
   late TextEditingController _priceCtrl;
-  late TextEditingController _costPriceCtrl;
-  late TextEditingController _quantityCtrl;
   String? _selectedImagePath;
   final FocusNode _barcodeFocus = FocusNode();
   @override
@@ -31,12 +29,6 @@ class _ItemDialogState extends State<ItemDialog> {
     _nameCtrl = TextEditingController(text: widget.item?.name ?? '');
     _priceCtrl = TextEditingController(
       text: widget.item?.price.toString() ?? '',
-    );
-    _costPriceCtrl = TextEditingController(
-      text: widget.item?.costPrice.toString() ?? '0.0',
-    );
-    _quantityCtrl = TextEditingController(
-      text: widget.item?.quantity.toString() ?? '0',
     );
     _selectedImagePath = widget.item?.imagePath;
     if (widget.item == null) {
@@ -57,8 +49,6 @@ class _ItemDialogState extends State<ItemDialog> {
     _barcodeCtrl.dispose();
     _nameCtrl.dispose();
     _priceCtrl.dispose();
-    _costPriceCtrl.dispose();
-    _quantityCtrl.dispose();
     _barcodeFocus.dispose();
     super.dispose();
   }
@@ -87,8 +77,8 @@ class _ItemDialogState extends State<ItemDialog> {
         barcode: _barcodeCtrl.text.trim(),
         name: _nameCtrl.text.trim(),
         price: double.parse(_priceCtrl.text.trim()),
-        costPrice: double.parse(_costPriceCtrl.text.trim()),
-        quantity: int.parse(_quantityCtrl.text.trim()),
+        costPrice: widget.item?.costPrice ?? 0.0,
+        quantity: widget.item?.quantity ?? 0,
         imagePath: _selectedImagePath,
       );
       if (widget.item == null) {
@@ -123,7 +113,7 @@ class _ItemDialogState extends State<ItemDialog> {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         title: Text(
-          widget.item == null ? 'زیادکردنی کاڵا' : 'گۆڕانکاری لە کاڵا',
+          widget.item == null ? 'زیادکردنی مادە' : 'گۆڕانکاری لە مادە',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.ink,
@@ -228,48 +218,6 @@ class _ItemDialogState extends State<ItemDialog> {
                       if (v!.isEmpty) return 'تکایە نرخی فرۆشتن بنووسە';
                       if (double.tryParse(v) == null)
                         return 'تکایە ژمارە بنووسە';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _costPriceCtrl,
-                    textDirection: TextDirection.ltr,
-                    textAlign: TextAlign.left,
-                    decoration: InputDecoration(
-                      labelText: 'نرخی کڕین / تێچوو (د.ع)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [EnglishNumberFormatter()],
-                    validator: (v) {
-                      if (v!.isEmpty) return 'تکایە نرخی کڕین بنووسە';
-                      if (double.tryParse(v) == null)
-                        return 'تکایە ژمارە بنووسە';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _quantityCtrl,
-                    textDirection: TextDirection.ltr,
-                    textAlign: TextAlign.left,
-                    decoration: InputDecoration(
-                      labelText: 'بڕ (عەدەد)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [EnglishNumberFormatter()],
-                    validator: (v) {
-                      if (v!.isEmpty) return 'تکایە بڕ بنووسە';
-                      if (int.tryParse(v) == null)
-                        return 'تکایە ژمارەی دروست بنووسە';
                       return null;
                     },
                   ),
