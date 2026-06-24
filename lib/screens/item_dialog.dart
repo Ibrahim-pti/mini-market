@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../providers/inventory_provider.dart';
 import '../models/item_model.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_toast.dart';
 import '../widgets/barcode_scanner_listener.dart';
 import '../utils/number_formatter.dart';
 class ItemDialog extends StatefulWidget {
@@ -84,9 +85,8 @@ class _ItemDialogState extends State<ItemDialog> {
       if (widget.item == null) {
         bool success = await provider.addItem(newItem);
         if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('ئەم بارکۆدە پێشتر تۆمارکراوە!')),
-          );
+          showAppToast(context, 'ئەم بارکۆدە پێشتر تۆمارکراوە!',
+              type: ToastType.error);
           return;
         }
       } else {

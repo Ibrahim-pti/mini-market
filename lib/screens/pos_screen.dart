@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/barcode_scanner_listener.dart';
 import '../widgets/payment_dialog.dart';
 import '../utils/barcode_utils.dart';
+import '../utils/app_toast.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 class PosScreen extends StatefulWidget {
@@ -49,9 +50,7 @@ class _PosScreenState extends State<PosScreen> {
     final result = await provider.scanItemForPOS(barcode.trim());
     if (result == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ئەم بارکۆدە نەدۆزرایەوە: $barcode')),
-        );
+        _toast('ئەم بارکۆدە نەدۆزرایەوە: $barcode', color: AppColors.rose);
       }
     } else {
       _addItemToCart(result);
@@ -111,9 +110,10 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   void _toast(String msg, {Color? color}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
+    final type = color == AppColors.emerald
+        ? ToastType.success
+        : (color == AppColors.rose ? ToastType.error : ToastType.info);
+    showAppToast(context, msg, type: type);
   }
 
   void _checkout() async {

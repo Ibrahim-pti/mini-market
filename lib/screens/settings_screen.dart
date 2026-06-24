@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/inventory_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_toast.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -186,29 +187,19 @@ class SettingsScreen extends StatelessWidget {
                       userController.text, passController.text);
                   if (ctx.mounted) {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(
-                        content: Text('هەژمار بە سەرکەوتوویی دانرا'),
-                      ),
-                    );
+                    showAppToast(ctx, 'هەژمار بە سەرکەوتوویی دانرا',
+                        type: ToastType.success);
                   }
                 } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(
-                      content: Text('تکایە هەردوو خانەکە پڕبکەوە'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  showAppToast(ctx, 'تکایە هەردوو خانەکە پڕبکەوە',
+                      type: ToastType.error);
                 }
               } else {
                 await auth.removeCredentials();
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(
-                      content: Text('هەژمار بە سەرکەوتوویی سڕایەوە'),
-                    ),
-                  );
+                  showAppToast(ctx, 'هەژمار بە سەرکەوتوویی سڕایەوە',
+                      type: ToastType.success);
                 }
               }
             },
@@ -278,22 +269,12 @@ class SettingsScreen extends StatelessWidget {
                 await provider.resetAllData();
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                      content:
-                          const Text('هەموو داتاکان بە سەرکەوتوویی سڕانەوە'),
-                      backgroundColor: AppColors.emerald,
-                    ),
-                  );
+                  showAppToast(ctx, 'هەموو داتاکان بە سەرکەوتوویی سڕانەوە',
+                      type: ToastType.success);
                 }
               } else {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(
-                    content:
-                        const Text('تکایە وشەی "سڕینەوە" بنووسە بۆ دڵنیابوون'),
-                    backgroundColor: AppColors.rose,
-                  ),
-                );
+                showAppToast(ctx, 'تکایە وشەی "سڕینەوە" بنووسە بۆ دڵنیابوون',
+                    type: ToastType.error);
               }
             },
             style: ElevatedButton.styleFrom(

@@ -7,6 +7,7 @@ import 'package:mini_market/providers/auth_provider.dart';
 import 'package:mini_market/providers/inventory_provider.dart';
 import 'package:mini_market/theme/app_theme.dart';
 import 'package:mini_market/services/backup_service.dart';
+import 'package:mini_market/utils/app_toast.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'inventory_screen.dart';
@@ -164,18 +165,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _backupNow() async {
     final provider = context.read<InventoryProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final success = await provider.backupDatabase();
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'باکەپ بە سەرکەوتوویی گیرا'
-              : 'هەڵەیەک ڕوویدا لە کاتی باکەپگرتن',
-        ),
-        backgroundColor: success ? AppColors.emerald : AppColors.rose,
-      ),
+    showAppToast(
+      context,
+      success ? 'باکەپ بە سەرکەوتوویی گیرا' : 'هەڵەیەک ڕوویدا لە کاتی باکەپگرتن',
+      type: success ? ToastType.success : ToastType.error,
     );
   }
 
@@ -186,18 +181,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     final provider = context.read<InventoryProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final success = await provider.restoreDatabase();
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'داتاکان بە سەرکەوتوویی گەڕێنرانەوە'
-              : 'هەڵەیەک ڕوویدا یان فایلەکە گونجاو نەبوو',
-        ),
-        backgroundColor: success ? AppColors.emerald : AppColors.rose,
-      ),
+    showAppToast(
+      context,
+      success
+          ? 'داتاکان بە سەرکەوتوویی گەڕێنرانەوە'
+          : 'هەڵەیەک ڕوویدا یان فایلەکە گونجاو نەبوو',
+      type: success ? ToastType.success : ToastType.error,
     );
   }
 
@@ -309,19 +300,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     final provider = context.read<InventoryProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final success = await provider.restoreFromFile(backup.path);
     if (dialogCtx.mounted) Navigator.pop(dialogCtx);
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'داتاکان بە سەرکەوتوویی گەڕێنرانەوە'
-              : 'هەڵەیەک ڕوویدا لە کاتی گەڕاندنەوە',
-        ),
-        backgroundColor: success ? AppColors.emerald : AppColors.rose,
-      ),
+    showAppToast(
+      context,
+      success
+          ? 'داتاکان بە سەرکەوتوویی گەڕێنرانەوە'
+          : 'هەڵەیەک ڕوویدا لە کاتی گەڕاندنەوە',
+      type: success ? ToastType.success : ToastType.error,
     );
   }
 
@@ -430,20 +417,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () async {
                               final provider =
                                   context.read<InventoryProvider>();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('لە نوێبوونەوەدایە...')),
-                              );
+                              showAppToast(context, 'لە نوێبوونەوەدایە...',
+                                  type: ToastType.info);
                               await provider.fetchDollarRateFromApi();
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context)
-                                    .hideCurrentSnackBar();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'نوێکرایەوە: ${NumberFormat('#,##0').format(provider.dollarRate.toInt())}'),
-                                    backgroundColor: AppColors.emerald,
-                                  ),
+                                showAppToast(
+                                  context,
+                                  'نوێکرایەوە: ${NumberFormat('#,##0').format(provider.dollarRate.toInt())}',
+                                  type: ToastType.success,
                                 );
                               }
                             },
