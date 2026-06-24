@@ -478,26 +478,6 @@ class _PosScreenState extends State<PosScreen> {
                                 color: active ? Colors.white : AppColors.inkSoft,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold)),
-                        if (cart.count > 0) ...[
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: active
-                                  ? Colors.white.withValues(alpha: 0.25)
-                                  : AppColors.primarySoft,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text('${cart.count}',
-                                style: TextStyle(
-                                    color: active
-                                        ? Colors.white
-                                        : AppColors.primary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ],
                         if (_carts.length > 1) ...[
                           const SizedBox(width: 4),
                           InkWell(
