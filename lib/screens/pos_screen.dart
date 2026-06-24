@@ -16,11 +16,24 @@ class PosScreen extends StatefulWidget {
   State<PosScreen> createState() => _PosScreenState();
 }
 
+class _Cart {
+  final int number;
+  final List<CartItem> items;
+
+  _Cart({required this.number, List<CartItem>? items}) : items = items ?? [];
+
+  int get count => items.fold(0, (sum, c) => sum + c.quantity);
+}
+
 class _PosScreenState extends State<PosScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
-  final List<CartItem> _cartItems = [];
+  final List<_Cart> _carts = [_Cart(number: 1)];
+  int _activeIndex = 0;
+  int _cartCounter = 1;
   String _query = '';
+
+  List<CartItem> get _cartItems => _carts[_activeIndex].items;
 
   @override
   void dispose() {
@@ -54,6 +67,49 @@ class _PosScreenState extends State<PosScreen> {
     }
   }
 
+  // کاتێک هەموو سەبەتەکان تەواوبوون و تەنها یەک سەبەتەی بەتاڵ ماوە،
+  // ژمارەکردن دەست پێ دەکاتەوە لە کڕیار ١.
+  void _resetNumberingIfClear() {
+    if (_carts.length == 1 && _carts[0].items.isEmpty) {
+      _cartCounter = 1;
+      _carts[0] = _Cart(number: 1);
+      _activeIndex = 0;
+    }
+  }
+
+  void _addNewCart() {
+    setState(() {
+      _cartCounter++;
+      _carts.add(_Cart(number: _cartCounter));
+      _activeIndex = _carts.length - 1;
+    });
+  }
+
+  void _switchCart(int index) {
+    if (index == _activeIndex) return;
+    setState(() => _activeIndex = index);
+  }
+
+  void _closeCart(int index) {
+    if (_carts.length == 1) {
+      // دوایین سەبەتە: تەنها بەتاڵی بکە، مەیسڕەوە
+      setState(() {
+        _carts[0].items.clear();
+        _resetNumberingIfClear();
+      });
+      return;
+    }
+    setState(() {
+      _carts.removeAt(index);
+      if (_activeIndex >= _carts.length) {
+        _activeIndex = _carts.length - 1;
+      } else if (index < _activeIndex) {
+        _activeIndex--;
+      }
+      _resetNumberingIfClear();
+    });
+  }
+
   void _toast(String msg, {Color? color}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: color),
@@ -65,7 +121,16 @@ class _PosScreenState extends State<PosScreen> {
     final provider = Provider.of<InventoryProvider>(context, listen: false);
     int? saleId = await provider.checkoutCart(_cartItems);
     if (saleId != null) {
-      setState(() => _cartItems.clear());
+      setState(() {
+        // ئەگەر زیاتر لە یەک سەبەتە هەیە، تابەکە دابخە؛ ئەگەرنا تەنها بەتاڵی بکە
+        if (_carts.length > 1) {
+          _carts.removeAt(_activeIndex);
+          if (_activeIndex >= _carts.length) _activeIndex = _carts.length - 1;
+        } else {
+          _cartItems.clear();
+        }
+        _resetNumberingIfClear();
+      });
       if (mounted) {
         _toast('فرۆشتنەکە بە سەرکەوتوویی تۆمارکرا', color: AppColors.emerald);
       }
@@ -309,7 +374,6 @@ class _PosScreenState extends State<PosScreen> {
 
   Widget _cartPane() {
     double total = _cartItems.fold(0, (sum, c) => sum + c.totalPrice);
-    int count = _cartItems.fold(0, (sum, c) => sum + c.quantity);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -320,6 +384,8 @@ class _PosScreenState extends State<PosScreen> {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
+          _cartTabs(),
+          Divider(height: 1, color: AppColors.border),
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -328,17 +394,18 @@ class _PosScreenState extends State<PosScreen> {
                 Icon(Icons.shopping_cart_rounded,
                     size: 18, color: AppColors.primary),
                 const SizedBox(width: 8),
-                Text('سەبەتەی فرۆشتن',
+                Text('کڕیار ${_carts[_activeIndex].number}',
                     style: TextStyle(
                         color: AppColors.ink,
                         fontSize: 15,
                         fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                AppBadge(text: '$count', color: AppColors.primary),
                 const Spacer(),
                 if (_cartItems.isNotEmpty)
                   InkWell(
-                    onTap: () => setState(() => _cartItems.clear()),
+                    onTap: () => setState(() {
+                      _cartItems.clear();
+                      _resetNumberingIfClear();
+                    }),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
@@ -372,6 +439,97 @@ class _PosScreenState extends State<PosScreen> {
                   ),
           ),
           _totals(total),
+        ],
+      ),
+    );
+  }
+
+  Widget _cartTabs() {
+    return Container(
+      height: 48,
+      color: AppColors.surfaceAlt,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              itemCount: _carts.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (context, i) {
+                final cart = _carts[i];
+                final active = i == _activeIndex;
+                return InkWell(
+                  onTap: () => _switchCart(i),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: active ? AppColors.primary : AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(
+                          color:
+                              active ? AppColors.primary : AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Text('کڕیار ${cart.number}',
+                            style: TextStyle(
+                                color: active ? Colors.white : AppColors.inkSoft,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold)),
+                        if (cart.count > 0) ...[
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? Colors.white.withValues(alpha: 0.25)
+                                  : AppColors.primarySoft,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text('${cart.count}',
+                                style: TextStyle(
+                                    color: active
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                        if (_carts.length > 1) ...[
+                          const SizedBox(width: 4),
+                          InkWell(
+                            onTap: () => _closeCart(i),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Icon(Icons.close_rounded,
+                                size: 15,
+                                color: active
+                                    ? Colors.white
+                                    : AppColors.muted),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          InkWell(
+            onTap: _addNewCart,
+            child: Container(
+              width: 44,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border(right: BorderSide(color: AppColors.border)),
+              ),
+              child: Icon(Icons.add_rounded,
+                  color: AppColors.primary, size: 22),
+            ),
+          ),
         ],
       ),
     );

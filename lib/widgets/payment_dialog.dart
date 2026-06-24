@@ -52,12 +52,18 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final maxH = media.size.height - media.viewInsets.vertical - 48;
+    final maxW = media.size.width - 48;
+    final dialogH = maxH < 600 ? maxH : 600.0;
+    final dialogW = maxW < 800 ? maxW : 800.0;
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: AppColors.background,
       child: Container(
-        width: 800,
-        height: 600,
+        width: dialogW,
+        height: dialogH,
         padding: const EdgeInsets.all(0),
         child: Row(
           children: [
@@ -101,7 +107,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                             color: AppColors.primaryDark),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     // Quick Cash Buttons
                     Wrap(
                       spacing: 10,
@@ -114,28 +120,32 @@ class _PaymentDialogState extends State<PaymentDialog> {
                         _quickBtn(50000),
                       ],
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 16),
                     // Numpad Grid
                     Expanded(
-                      flex: 6,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return GridView.count(
-                            crossAxisCount: 3,
-                            childAspectRatio: 1.6,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              _numBtn('7'), _numBtn('8'), _numBtn('9'),
-                              _numBtn('4'), _numBtn('5'), _numBtn('6'),
-                              _numBtn('1'), _numBtn('2'), _numBtn('3'),
-                              _numBtn('C', color: AppColors.roseSoft, textColor: AppColors.rose),
-                              _numBtn('0'),
-                              _numBtn('000'),
-                            ],
-                          );
-                        }
+                      child: Column(
+                        children: [
+                          Expanded(
+                              child: _padRow(
+                                  [_numBtn('7'), _numBtn('8'), _numBtn('9')])),
+                          const SizedBox(height: 12),
+                          Expanded(
+                              child: _padRow(
+                                  [_numBtn('4'), _numBtn('5'), _numBtn('6')])),
+                          const SizedBox(height: 12),
+                          Expanded(
+                              child: _padRow(
+                                  [_numBtn('1'), _numBtn('2'), _numBtn('3')])),
+                          const SizedBox(height: 12),
+                          Expanded(
+                              child: _padRow([
+                            _numBtn('C',
+                                color: AppColors.roseSoft,
+                                textColor: AppColors.rose),
+                            _numBtn('0'),
+                            _numBtn('000'),
+                          ])),
+                        ],
                       ),
                     ),
                   ],
@@ -217,6 +227,18 @@ class _PaymentDialogState extends State<PaymentDialog> {
         child: Text('${_currencyFormat.format(amount)}',
             style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink, fontSize: 16)),
       ),
+    );
+  }
+
+  Widget _padRow(List<Widget> btns) {
+    return Row(
+      children: [
+        Expanded(child: btns[0]),
+        const SizedBox(width: 12),
+        Expanded(child: btns[1]),
+        const SizedBox(width: 12),
+        Expanded(child: btns[2]),
+      ],
     );
   }
 
