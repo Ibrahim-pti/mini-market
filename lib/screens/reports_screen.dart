@@ -476,24 +476,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _dayCard(DailySalesReport report) {
     return Material(
-      color: Colors.transparent,
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        side: BorderSide(color: AppColors.border),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: () => _showDayInvoices(report),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
           child: Row(
             children: [
               Container(
@@ -904,11 +896,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _invoiceTile(Sale sale) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.background,
+    return Material(
+      color: AppColors.background,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Theme(
