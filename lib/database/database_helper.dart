@@ -4,6 +4,8 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/item_model.dart';
+import '../models/debt_model.dart';
+import '../models/debt_payment_model.dart';
 import '../utils/barcode_utils.dart';
 import '../models/shift_model.dart';
 
@@ -56,7 +58,7 @@ class DatabaseHelper {
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 8,
+        version: 9,
         onCreate: _createDB,
         onUpgrade: _upgradeDB,
       ),
@@ -145,10 +147,24 @@ CREATE TABLE suppliers (
 CREATE TABLE debts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   personName TEXT NOT NULL,
+  phone TEXT,
   amount REAL NOT NULL,
+  paid_amount REAL DEFAULT 0.0,
   type TEXT NOT NULL,
+  date TEXT NOT NULL,
+  due_date TEXT,
+  notes TEXT
+)
+''');
+
+    await db.execute('''
+CREATE TABLE debt_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  debt_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,
   notes TEXT,
-  date TEXT NOT NULL
+  FOREIGN KEY (debt_id) REFERENCES debts (id) ON DELETE CASCADE
 )
 ''');
 
@@ -277,6 +293,29 @@ CREATE TABLE IF NOT EXISTS shifts (
 )
 ''');
     }
+    if (oldVersion < 9) {
+      // Ensure debts table has all columns
+      try {
+        await db.execute('ALTER TABLE debts ADD COLUMN phone TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE debts ADD COLUMN paid_amount REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE debts ADD COLUMN due_date TEXT');
+      } catch (_) {}
+
+      await db.execute('''
+CREATE TABLE IF NOT EXISTS debt_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  debt_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,
+  notes TEXT,
+  FOREIGN KEY (debt_id) REFERENCES debts (id) ON DELETE CASCADE
+)
+''');
+    }
   }
 
   Future<int> insertItem(Item item) async {
@@ -362,7 +401,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     return result.map((json) => Shift.fromMap(json)).toList();
   }
 
-  // ===================== ITEMS =====================
+  // ===================== ITEMS & SALES =====================
   Future<int> insertSale(
       double totalAmount, List<Map<String, dynamic>> saleItems) async {
     final db = await instance.database;
@@ -378,6 +417,95 @@ CREATE TABLE IF NOT EXISTS shifts (
         await txn.insert('sale_items', item);
       }
       return saleId;
+    });
+  }
+
+  // ===================== DEBTS & PAYMENTS =====================
+  Future<int> insertDebt(Debt debt) async {
+    final db = await instance.database;
+    return await db.insert('debts', debt.toMap());
+  }
+
+  Future<int> updateDebt(Debt debt) async {
+    final db = await instance.database;
+    return await db.update(
+      'debts',
+      debt.toMap(),
+      where: 'id = ?',
+      whereArgs: [debt.id],
+    );
+  }
+
+  Future<int> deleteDebt(int id) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.delete('debt_payments', where: 'debt_id = ?', whereArgs: [id]);
+      return await txn.delete('debts', where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
+  Future<List<Debt>> getAllDebts() async {
+    final db = await instance.database;
+    final result = await db.query('debts', orderBy: 'id DESC');
+    return result.map((json) => Debt.fromMap(json)).toList();
+  }
+
+  Future<Debt?> getDebtById(int id) async {
+    final db = await instance.database;
+    final result = await db.query('debts', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (result.isNotEmpty) {
+      return Debt.fromMap(result.first);
+    }
+    return null;
+  }
+
+  Future<int> insertDebtPayment(DebtPayment payment) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      final paymentId = await txn.insert('debt_payments', payment.toMap());
+      // Update paid_amount in debt
+      final debtRows = await txn.query('debts', where: 'id = ?', whereArgs: [payment.debtId]);
+      if (debtRows.isNotEmpty) {
+        final currentDebt = Debt.fromMap(debtRows.first);
+        final newPaid = currentDebt.paidAmount + payment.amount;
+        await txn.update(
+          'debts',
+          {'paid_amount': newPaid},
+          where: 'id = ?',
+          whereArgs: [payment.debtId],
+        );
+      }
+      return paymentId;
+    });
+  }
+
+  Future<List<DebtPayment>> getPaymentsForDebt(int debtId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'debt_payments',
+      where: 'debt_id = ?',
+      whereArgs: [debtId],
+      orderBy: 'id DESC',
+    );
+    return result.map((json) => DebtPayment.fromMap(json)).toList();
+  }
+
+  Future<int> deleteDebtPayment(int paymentId, int debtId, double amount) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      final rows = await txn.delete('debt_payments', where: 'id = ?', whereArgs: [paymentId]);
+      final debtRows = await txn.query('debts', where: 'id = ?', whereArgs: [debtId]);
+      if (debtRows.isNotEmpty) {
+        final currentDebt = Debt.fromMap(debtRows.first);
+        final newPaid = (currentDebt.paidAmount - amount).clamp(0.0, currentDebt.amount);
+        await txn.update(
+          'debts',
+          {'paid_amount': newPaid},
+          where: 'id = ?',
+          whereArgs: [debtId],
+        );
+      }
+      return rows;
     });
   }
 
@@ -398,8 +526,10 @@ CREATE TABLE IF NOT EXISTS shifts (
       await txn.delete('shifts');
       await txn.delete('customers');
       await txn.delete('suppliers');
+      await txn.delete('debt_payments');
       await txn.delete('debts');
       await txn.delete('employees');
     });
   }
 }
+

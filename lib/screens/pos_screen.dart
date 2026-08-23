@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
+import '../providers/debt_provider.dart';
+import '../models/debt_model.dart';
 import '../models/item_model.dart';
 import '../models/cart_item.dart';
 import '../theme/app_theme.dart';
@@ -116,11 +118,28 @@ class _PosScreenState extends State<PosScreen> {
     showAppToast(context, msg, type: type);
   }
 
-  void _checkout() async {
+  void _checkout({PaymentResult? paymentResult, double? total}) async {
     if (_cartItems.isEmpty) return;
     final provider = Provider.of<InventoryProvider>(context, listen: false);
+    final debtProvider = Provider.of<DebtProvider>(context, listen: false);
+
     int? saleId = await provider.checkoutCart(_cartItems);
     if (saleId != null) {
+      // If sold on credit, register the debt
+      if (paymentResult != null && paymentResult.isCredit && paymentResult.customerName != null) {
+        final double grandTotal = total ?? _cartItems.fold(0.0, (sum, c) => sum + c.totalPrice);
+        final newDebt = Debt(
+          personName: paymentResult.customerName!,
+          phone: paymentResult.phone,
+          amount: grandTotal,
+          paidAmount: paymentResult.givenAmount > 0 ? paymentResult.givenAmount : 0.0,
+          type: 'customer',
+          date: DateTime.now(),
+          notes: paymentResult.notes,
+        );
+        await debtProvider.addDebt(newDebt);
+      }
+
       setState(() {
         // ئەگەر زیاتر لە یەک سەبەتە هەیە، تابەکە دابخە؛ ئەگەرنا تەنها بەتاڵی بکە
         if (_carts.length > 1) {
@@ -132,20 +151,26 @@ class _PosScreenState extends State<PosScreen> {
         _resetNumberingIfClear();
       });
       if (mounted) {
-        _toast('فرۆشتنەکە بە سەرکەوتوویی تۆمارکرا', color: AppColors.emerald);
+        if (paymentResult != null && paymentResult.isCredit) {
+          _toast('فرۆشتنەکە بە قەرز بۆ (${paymentResult.customerName}) تۆمارکرا', color: AppColors.emerald);
+        } else {
+          _toast('فرۆشتنەکە بە سەرکەوتوویی تۆمارکرا', color: AppColors.emerald);
+        }
       }
     } else {
-      if (mounted) _toast('کڕیار پارەی پێویستی نەداوە!', color: AppColors.rose);
+      if (mounted) _toast('کێشەیەک ڕوویدا لە تۆمارکردنی فرۆشتن!', color: AppColors.rose);
     }
   }
 
   Future<void> _openPayment(double total) async {
     if (_cartItems.isEmpty) return;
-    bool? confirmed = await showDialog<bool>(
+    final result = await showDialog<PaymentResult>(
       context: context,
       builder: (ctx) => PaymentDialog(totalAmount: total),
     );
-    if (confirmed == true) _checkout();
+    if (result != null && result.confirmed) {
+      _checkout(paymentResult: result, total: total);
+    }
   }
 
   @override

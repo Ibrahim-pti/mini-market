@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'inventory_screen.dart';
 import 'pos_screen.dart';
+import 'debts_screen.dart';
 import 'settings_screen.dart';
 import 'reports_screen.dart';
 import 'calculator_screen.dart';
@@ -44,6 +45,12 @@ class _HomeScreenState extends State<HomeScreen> {
       icon: Icons.point_of_sale_rounded,
       color: const Color(0xFF2E8B57), // Sea Green
       build: () => const PosScreen(),
+    ),
+    _Section(
+      title: 'بەشی قەرزەکان',
+      icon: Icons.account_balance_wallet_rounded,
+      color: const Color(0xFFD97706), // Amber-Orange
+      build: () => const DebtsScreen(),
     ),
     _Section(
       title: 'بەرهەم',
