@@ -759,7 +759,7 @@ class _SectionPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             shape: Border(bottom: BorderSide(color: AppColors.border)),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_forward_rounded),
+              icon: const Icon(Icons.arrow_back_rounded),
               tooltip: 'گەڕانەوە',
               onPressed: () {
                 Navigator.of(context).pop();
