@@ -65,33 +65,25 @@ class _DebtsScreenState extends State<DebtsScreen> {
   Widget _buildStatCards(DebtProvider provider) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth > 900;
-        final medium = constraints.maxWidth > 600;
+        final wide = constraints.maxWidth > 800;
 
         final cards = [
           _StatCard(
-            title: 'قەرزی سەر کڕیاران (لای خەڵکە)',
+            title: 'کۆی قەرزی سەر کڕیاران (لای خەڵکە)',
             amount: provider.totalCustomerDebt,
-            icon: Icons.call_received_rounded,
+            icon: Icons.account_balance_wallet_rounded,
             color: const Color(0xFF10B981), // Emerald
             currencyFormat: _currencyFormat,
           ),
           _StatCard(
-            title: 'قەرزی سەر ئێمە (بۆ دابینکەران)',
-            amount: provider.totalSupplierDebt,
-            icon: Icons.call_made_rounded,
-            color: const Color(0xFFF59E0B), // Amber
-            currencyFormat: _currencyFormat,
-          ),
-          _StatCard(
-            title: 'کۆی گشتی پارەی دراو',
+            title: 'کۆی پارەی وەرگیراو (دراوە)',
             amount: provider.totalPaidDebt,
             icon: Icons.check_circle_outline_rounded,
             color: const Color(0xFF4F46E5), // Indigo
             currencyFormat: _currencyFormat,
           ),
           _StatCard(
-            title: 'کەسی قەرزدار (نەدراوە)',
+            title: 'کڕیاری قەرزدار (نەدراوە)',
             amount: provider.activeDebtorsCount.toDouble(),
             isCount: true,
             icon: Icons.people_alt_outlined,
@@ -114,7 +106,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   .toList(),
             ),
           );
-        } else if (medium) {
+        } else {
           return Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: Column(
@@ -127,28 +119,8 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: cards[2]),
-                    const SizedBox(width: 12),
-                    Expanded(child: cards[3]),
-                  ],
-                ),
+                cards[2],
               ],
-            ),
-          );
-        } else {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            child: Row(
-              children: cards
-                  .map((c) => Container(
-                        width: 240,
-                        margin: const EdgeInsets.only(left: 12),
-                        child: c,
-                      ))
-                  .toList(),
             ),
           );
         }
@@ -176,7 +148,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
               controller: _searchCtrl,
               onChanged: provider.search,
               decoration: InputDecoration(
-                hintText: 'گەڕان بەپێی ناوی کەس، مۆبایل، تێبینی...',
+                hintText: 'گەڕان بەپێی ناوی کڕیار، مۆبایل، تێبینی...',
                 prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
@@ -203,48 +175,27 @@ class _DebtsScreenState extends State<DebtsScreen> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _filterChip(
+              _statusChip(
                 label: 'هەمووی',
-                selected: provider.selectedType == 'all',
-                onSelected: () => provider.filterByType('all'),
+                selected: provider.selectedStatus == 'all',
+                onSelected: () => provider.filterByStatus('all'),
               ),
-              _filterChip(
-                label: 'قەرزی سەر کڕیار',
-                selected: provider.selectedType == 'customer',
-                icon: Icons.person_rounded,
-                selectedColor: const Color(0xFF10B981),
-                onSelected: () => provider.filterByType('customer'),
-              ),
-              _filterChip(
-                label: 'قەرزی سەر ئێمە',
-                selected: provider.selectedType == 'supplier',
-                icon: Icons.local_shipping_rounded,
-                selectedColor: const Color(0xFFF59E0B),
-                onSelected: () => provider.filterByType('supplier'),
-              ),
-              Container(width: 1, height: 24, color: AppColors.border, margin: const EdgeInsets.symmetric(horizontal: 4)),
               _statusChip(
                 label: 'نەدراوە',
                 selected: provider.selectedStatus == 'unpaid',
-                onSelected: () => provider.filterByStatus(
-                  provider.selectedStatus == 'unpaid' ? 'all' : 'unpaid',
-                ),
+                onSelected: () => provider.filterByStatus('unpaid'),
               ),
               _statusChip(
-                label: 'تەواوبوو',
+                label: 'تەواوبوو (دراوە)',
                 selected: provider.selectedStatus == 'paid',
-                onSelected: () => provider.filterByStatus(
-                  provider.selectedStatus == 'paid' ? 'all' : 'paid',
-                ),
+                onSelected: () => provider.filterByStatus('paid'),
               ),
               if (provider.overdueDebtsCount > 0)
                 _statusChip(
                   label: 'بەسەرچوو (${provider.overdueDebtsCount})',
                   selected: provider.selectedStatus == 'overdue',
                   color: AppColors.rose,
-                  onSelected: () => provider.filterByStatus(
-                    provider.selectedStatus == 'overdue' ? 'all' : 'overdue',
-                  ),
+                  onSelected: () => provider.filterByStatus('overdue'),
                 ),
             ],
           );
@@ -253,7 +204,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             onPressed: () => _showAddEditDebtDialog(),
             icon: const Icon(Icons.add_rounded, size: 20),
             label: const Text(
-              'زیادکردنی قەرز',
+              'زیادکردنی قەرزی کڕیار',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
@@ -271,7 +222,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
               children: [
                 Expanded(flex: 3, child: searchField),
                 const SizedBox(width: 16),
-                Expanded(flex: 5, child: filterChips),
+                Expanded(flex: 4, child: filterChips),
                 const SizedBox(width: 16),
                 addBtn,
               ],
@@ -297,53 +248,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
     );
   }
 
-  Widget _filterChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onSelected,
-    IconData? icon,
-    Color? selectedColor,
-  }) {
-    final activeColor = selectedColor ?? AppColors.primary;
-    return InkWell(
-      onTap: onSelected,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? activeColor.withValues(alpha: 0.15) : AppColors.surfaceAlt,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(
-            color: selected ? activeColor : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: selected ? activeColor : AppColors.inkSoft,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-                color: selected ? activeColor : AppColors.inkSoft,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _statusChip({
     required String label,
     required bool selected,
@@ -354,21 +258,23 @@ class _DebtsScreenState extends State<DebtsScreen> {
     return InkWell(
       onTap: onSelected,
       borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? c : Colors.transparent,
+          color: selected ? c.withValues(alpha: 0.15) : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
             color: selected ? c : AppColors.border,
+            width: selected ? 1.5 : 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.bold,
-            color: selected ? Colors.white : AppColors.inkSoft,
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+            color: selected ? c : AppColors.inkSoft,
           ),
         ),
       ),
@@ -394,7 +300,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'هیچ قەرزێک نەدۆزرایەوە',
+            'هیچ قەرزێکی کڕیار نییە',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -403,14 +309,14 @@ class _DebtsScreenState extends State<DebtsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'دەتوانیت قەرزی نوێ زیاد بکەیت لە ڕێگەی دوگمەی "زیادکردنی قەرز"',
+            'دەتوانیت قەرزی کڕیاری نوێ زیاد بکەیت',
             style: TextStyle(fontSize: 14, color: AppColors.muted),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => _showAddEditDebtDialog(),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('زیادکردنی قەرزی نوێ'),
+            label: const Text('زیادکردنی قەرزی کڕیار'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -442,7 +348,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
               onHistory: () => _showHistoryDialog(provider.debts[i]),
               onEdit: () => _showAddEditDebtDialog(debt: provider.debts[i]),
               onDelete: () => _confirmDelete(provider.debts[i]),
-              onStatement: () => _showStatementDialog(provider.debts[i]),
             ),
           );
         }
@@ -453,7 +358,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             crossAxisCount: cols,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            mainAxisExtent: 280,
+            mainAxisExtent: 270,
           ),
           itemCount: provider.debts.length,
           itemBuilder: (context, i) => _DebtCard(
@@ -464,7 +369,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
             onHistory: () => _showHistoryDialog(provider.debts[i]),
             onEdit: () => _showAddEditDebtDialog(debt: provider.debts[i]),
             onDelete: () => _confirmDelete(provider.debts[i]),
-            onStatement: () => _showStatementDialog(provider.debts[i]),
           ),
         );
       },
@@ -483,7 +387,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
       text: debt != null ? debt.amount.toStringAsFixed(0) : '',
     );
     final notesCtrl = TextEditingController(text: debt?.notes ?? '');
-    String type = debt?.type ?? 'customer';
     DateTime selectedDate = debt?.date ?? DateTime.now();
     DateTime? selectedDueDate = debt?.dueDate;
 
@@ -503,21 +406,21 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  isEdit ? Icons.edit_note_rounded : Icons.add_card_rounded,
+                  isEdit ? Icons.edit_note_rounded : Icons.person_add_alt_1_rounded,
                   color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isEdit ? 'دەستکاریکردنی قەرز' : 'تۆمارکردنی قەرزی نوێ',
+                  isEdit ? 'دەستکاریکردنی قەرزی کڕیار' : 'تۆمارکردنی قەرزی کڕیار',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
           content: SizedBox(
-            width: 500,
+            width: 480,
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -525,118 +428,15 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Type Selector
-                    Text(
-                      'جۆری قەرز',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.inkSoft,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setDialogState(() => type = 'customer'),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: type == 'customer'
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                                    : AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: type == 'customer'
-                                      ? const Color(0xFF10B981)
-                                      : AppColors.border,
-                                  width: type == 'customer' ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.person_rounded,
-                                    size: 18,
-                                    color: type == 'customer'
-                                        ? const Color(0xFF10B981)
-                                        : AppColors.muted,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'قەرزی سەر کڕیار',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: type == 'customer'
-                                          ? const Color(0xFF10B981)
-                                          : AppColors.inkSoft,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setDialogState(() => type = 'supplier'),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: type == 'supplier'
-                                    ? const Color(0xFFF59E0B).withValues(alpha: 0.12)
-                                    : AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: type == 'supplier'
-                                      ? const Color(0xFFF59E0B)
-                                      : AppColors.border,
-                                  width: type == 'supplier' ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.local_shipping_rounded,
-                                    size: 18,
-                                    color: type == 'supplier'
-                                        ? const Color(0xFFF59E0B)
-                                        : AppColors.muted,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'قەرزی سەر ئێمە',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: type == 'supplier'
-                                          ? const Color(0xFFF59E0B)
-                                          : AppColors.inkSoft,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Person Name
+                    // Customer Name
                     TextFormField(
                       controller: nameCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'ناوی کەس / کڕیار / دابینکەر *',
-                        prefixIcon: Icon(Icons.badge_outlined),
+                        labelText: 'ناوی کڕیار *',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
                       ),
                       validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'تکایە ناو بنووسە' : null,
+                          v == null || v.trim().isEmpty ? 'تکایە ناوی کڕیار بنووسە' : null,
                     ),
                     const SizedBox(height: 14),
 
@@ -710,7 +510,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('بەرواری وەرگرتن', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                                      Text('بەرواری قەرز', style: TextStyle(fontSize: 11, color: AppColors.muted)),
                                       Text(_dateFormat.format(selectedDate), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                     ],
                                   ),
@@ -807,7 +607,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                     personName: nameCtrl.text.trim(),
                     phone: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
                     amount: amount,
-                    type: type,
+                    type: 'customer',
                     date: selectedDate,
                     dueDate: selectedDueDate,
                     notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
@@ -823,7 +623,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                     personName: nameCtrl.text.trim(),
                     phone: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
                     amount: amount,
-                    type: type,
+                    type: 'customer',
                     date: selectedDate,
                     dueDate: selectedDueDate,
                     notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
@@ -872,9 +672,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('دانەوە / وەرگرتنی پارەی قەرز', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text('وەرگرتنی پارەی قەرز لە کڕیار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     Text(
-                      'بۆ: ${debt.personName}',
+                      'کڕیار: ${debt.personName}',
                       style: TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.normal),
                     ),
                   ],
@@ -962,7 +762,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                     autofocus: true,
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
-                      labelText: 'بڕی پارەی پێدراو (د.ع) *',
+                      labelText: 'بڕی پارەی وەرگیراو (د.ع) *',
                       prefixIcon: const Icon(Icons.monetization_on_outlined),
                       suffixText: 'د.ع',
                       suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
@@ -1016,7 +816,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                 );
               },
               icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-              label: const Text('پەسەندکردنی دانەوە'),
+              label: const Text('پەسەندکردنی وەرگرتن'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
@@ -1077,7 +877,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('مێژووی قیست و دانەوەکان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text('مێژووی قیست و وەجبەکان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     Text(
                       'کڕیار: ${debt.personName}',
                       style: TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.normal),
@@ -1097,7 +897,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                       children: [
                         Icon(Icons.hourglass_empty_rounded, size: 48, color: AppColors.muted),
                         const SizedBox(height: 12),
-                        Text('تا ئێستا هیچ قیستێک نەدراوەتەوە', style: TextStyle(color: AppColors.muted)),
+                        Text('تا ئێستا هیچ بڕێک نەدراوەتەوە', style: TextStyle(color: AppColors.muted)),
                       ],
                     ),
                   )
@@ -1133,7 +933,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                               context: context,
                               builder: (c) => AlertDialog(
                                 title: const Text('سڕینەوەی وەجبە'),
-                                content: const Text('دڵنیایت لە سڕینەوەی ئەم پارەدانە؟ بڕەکەی دەگەڕێتەوە سەر ماوەی قەرزەکە.'),
+                                content: const Text('دڵنیایت لە سڕینەوەی ئەم بڕە؟ دەگەڕێتەوە سەر ماوەی قەرزەکە.'),
                                 actions: [
                                   TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('نەخێر')),
                                   ElevatedButton(
@@ -1170,144 +970,6 @@ class _DebtsScreenState extends State<DebtsScreen> {
     );
   }
 
-  Future<void> _showStatementDialog(Debt debt) async {
-    final provider = context.read<DebtProvider>();
-    final payments = await provider.getPaymentsForDebt(debt.id!);
-
-    if (!mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.description_rounded, color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('صورت حساب / وەرقەی قەرز', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-        ),
-        content: SizedBox(
-          width: 460,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Text('مارکێت گوڵینا', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    const SizedBox(height: 4),
-                    Text('وەسڵی هەژماری قەرز', style: TextStyle(fontSize: 13, color: AppColors.muted)),
-                    const Divider(height: 24),
-                    _statementRow('ناوی کەس:', debt.personName, isBold: true),
-                    if (debt.phone != null) ...[
-                      const SizedBox(height: 6),
-                      _statementRow('ژمارەی مۆبایل:', debt.phone!),
-                    ],
-                    const SizedBox(height: 6),
-                    _statementRow('جۆری قەرز:', debt.type == 'customer' ? 'قەرزی سەر کڕیار' : 'قەرزی سەر خۆمان'),
-                    const SizedBox(height: 6),
-                    _statementRow('بەرواری تۆمارکردن:', _dateFormat.format(debt.date)),
-                    if (debt.dueDate != null) ...[
-                      const SizedBox(height: 6),
-                      _statementRow('کاتی دیاریکراو بۆ دانەوە:', _dateFormat.format(debt.dueDate!)),
-                    ],
-                    const Divider(height: 24),
-                    _statementRow('کۆی گشتی قەرز:', '${_currencyFormat.format(debt.amount)} د.ع', isBold: true),
-                    const SizedBox(height: 6),
-                    _statementRow('کۆی پارەی دراو:', '${_currencyFormat.format(debt.paidAmount)} د.ع', color: const Color(0xFF10B981)),
-                    const SizedBox(height: 6),
-                    _statementRow(
-                      'بڕی ماوە:',
-                      '${_currencyFormat.format(debt.remainingAmount)} د.ع',
-                      isBold: true,
-                      color: debt.remainingAmount > 0 ? AppColors.rose : const Color(0xFF10B981),
-                    ),
-                  ],
-                ),
-              ),
-              if (payments.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'دوایین وەجبەکانی دانەوە:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.inkSoft),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 110,
-                  child: ListView.builder(
-                    itemCount: payments.length,
-                    itemBuilder: (context, i) {
-                      final p = payments[i];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${_dateFormat.format(p.date)} - ${_currencyFormat.format(p.amount)} د.ع', style: const TextStyle(fontSize: 12)),
-                            if (p.notes != null) Text(p.notes!, style: TextStyle(fontSize: 11, color: AppColors.muted)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('داخستن'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _toast('وەسڵەکە ئامادەی چاپە', type: ToastType.success);
-            },
-            icon: const Icon(Icons.print_rounded, size: 18),
-            label: const Text('چاپکردن'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statementRow(String label, String value, {bool isBold = false, Color? color}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: AppColors.muted, fontSize: 13)),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            fontSize: 14,
-            color: color ?? AppColors.ink,
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _confirmDelete(Debt debt) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -1320,7 +982,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             const Text('سڕینەوەی قەرز'),
           ],
         ),
-        content: Text('دڵنیایت لە سڕینەوەی قەرزی "${debt.personName}" بە بڕی ${_currencyFormat.format(debt.amount)} د.ع؟ هەموو مێژووی قیستەکانیش دەسڕێنەوە.'),
+        content: Text('دڵنیایت لە سڕینەوەی قەرزی کڕیار "${debt.personName}" بە بڕی ${_currencyFormat.format(debt.amount)} د.ع؟ هەموو مێژووی قیستەکانیش دەسڕێنەوە.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -1406,7 +1068,7 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   isCount
-                      ? '${amount.toInt()} کەس'
+                      ? '${amount.toInt()} کڕیار'
                       : '${currencyFormat.format(amount)} د.ع',
                   style: TextStyle(
                     fontSize: 18,
@@ -1431,7 +1093,6 @@ class _DebtCard extends StatelessWidget {
   final VoidCallback onHistory;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onStatement;
 
   const _DebtCard({
     required this.debt,
@@ -1441,13 +1102,11 @@ class _DebtCard extends StatelessWidget {
     required this.onHistory,
     required this.onEdit,
     required this.onDelete,
-    required this.onStatement,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCustomer = debt.type == 'customer';
-    final typeColor = isCustomer ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    const typeColor = Color(0xFF10B981);
     final isFullyPaid = debt.isFullyPaid;
 
     return Container(
@@ -1466,7 +1125,7 @@ class _DebtCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: Avatar, Name, Phone & Status Badges
+          // Header Row: Avatar, Name, Phone & Menu
           Row(
             children: [
               CircleAvatar(
@@ -1474,7 +1133,7 @@ class _DebtCard extends StatelessWidget {
                 backgroundColor: typeColor.withValues(alpha: 0.15),
                 child: Text(
                   debt.personName.isNotEmpty ? debt.personName.characters.first : '?',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: typeColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -1510,43 +1169,15 @@ class _DebtCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Type Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: typeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text(
-                  isCustomer ? 'سەر کڕیار' : 'سەر خۆمان',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.bold,
-                    color: typeColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // More Actions Menu
+              // More Actions Menu (Edit / Delete)
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
                 padding: EdgeInsets.zero,
                 onSelected: (val) {
                   if (val == 'edit') onEdit();
-                  if (val == 'statement') onStatement();
                   if (val == 'delete') onDelete();
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'statement',
-                    child: Row(
-                      children: [
-                        Icon(Icons.receipt_rounded, size: 18),
-                        SizedBox(width: 8),
-                        Text('صورت حساب / وەسڵ'),
-                      ],
-                    ),
-                  ),
                   const PopupMenuItem(
                     value: 'edit',
                     child: Row(
@@ -1648,14 +1279,14 @@ class _DebtCard extends StatelessWidget {
           ),
           const Spacer(),
 
-          // Action Buttons: Pay & History
+          // Action Buttons: History & Pay
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: onHistory,
                   icon: const Icon(Icons.history_rounded, size: 16),
-                  label: const Text('مێژوو', style: TextStyle(fontSize: 13)),
+                  label: const Text('مێژووی قیستەکان', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -1669,7 +1300,7 @@ class _DebtCard extends StatelessWidget {
                   onPressed: isFullyPaid ? null : onPayment,
                   icon: Icon(isFullyPaid ? Icons.check_circle_rounded : Icons.payments_rounded, size: 16),
                   label: Text(
-                    isFullyPaid ? 'تەواو دراوە' : 'دانەوەی پارە',
+                    isFullyPaid ? 'تەواو دراوە' : 'وەرگرتنی پارە',
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
