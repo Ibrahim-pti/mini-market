@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -99,359 +100,392 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppColors.background,
-        child: Container(
-          width: dialogW,
-          height: dialogH,
-          padding: EdgeInsets.zero,
-          child: Row(
-            children: [
-              // Left Side: Calculator / Numpad
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(24),
-                      bottomRight: Radius.circular(24),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        isDebt ? 'بڕی پارەدان لەم وەسڵە (نەختینە)' : 'بڕی پێدراو (لەلایەن کڕیارەوە)',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.inkSoft,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.digit0): () => _onNumpadPress('0'),
+          const SingleActivator(LogicalKeyboardKey.digit1): () => _onNumpadPress('1'),
+          const SingleActivator(LogicalKeyboardKey.digit2): () => _onNumpadPress('2'),
+          const SingleActivator(LogicalKeyboardKey.digit3): () => _onNumpadPress('3'),
+          const SingleActivator(LogicalKeyboardKey.digit4): () => _onNumpadPress('4'),
+          const SingleActivator(LogicalKeyboardKey.digit5): () => _onNumpadPress('5'),
+          const SingleActivator(LogicalKeyboardKey.digit6): () => _onNumpadPress('6'),
+          const SingleActivator(LogicalKeyboardKey.digit7): () => _onNumpadPress('7'),
+          const SingleActivator(LogicalKeyboardKey.digit8): () => _onNumpadPress('8'),
+          const SingleActivator(LogicalKeyboardKey.digit9): () => _onNumpadPress('9'),
+          const SingleActivator(LogicalKeyboardKey.numpad0): () => _onNumpadPress('0'),
+          const SingleActivator(LogicalKeyboardKey.numpad1): () => _onNumpadPress('1'),
+          const SingleActivator(LogicalKeyboardKey.numpad2): () => _onNumpadPress('2'),
+          const SingleActivator(LogicalKeyboardKey.numpad3): () => _onNumpadPress('3'),
+          const SingleActivator(LogicalKeyboardKey.numpad4): () => _onNumpadPress('4'),
+          const SingleActivator(LogicalKeyboardKey.numpad5): () => _onNumpadPress('5'),
+          const SingleActivator(LogicalKeyboardKey.numpad6): () => _onNumpadPress('6'),
+          const SingleActivator(LogicalKeyboardKey.numpad7): () => _onNumpadPress('7'),
+          const SingleActivator(LogicalKeyboardKey.numpad8): () => _onNumpadPress('8'),
+          const SingleActivator(LogicalKeyboardKey.numpad9): () => _onNumpadPress('9'),
+          const SingleActivator(LogicalKeyboardKey.backspace): () => _onNumpadPress('⌫'),
+          const SingleActivator(LogicalKeyboardKey.delete): () => _onNumpadPress('C'),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: AppColors.background,
+            child: Container(
+              width: dialogW,
+              height: dialogH,
+              padding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  // Left Side: Calculator / Numpad
+                  Expanded(
+                    flex: 3,
+                    child: Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      // Input Display
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: (isDebt ? const Color(0xFFD97706) : AppColors.primary).withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Text(
-                          _inputAmountStr.isEmpty ? '0' : _currencyFormat.format(_givenAmount),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                            color: isDebt ? const Color(0xFFD97706) : AppColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Quick Cash Buttons
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          _quickBtn(5000),
-                          _quickBtn(10000),
-                          _quickBtn(25000),
-                          _quickBtn(50000),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Numpad Grid
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Expanded(child: _padRow([_numBtn('7'), _numBtn('8'), _numBtn('9')])),
-                            const SizedBox(height: 8),
-                            Expanded(child: _padRow([_numBtn('4'), _numBtn('5'), _numBtn('6')])),
-                            const SizedBox(height: 8),
-                            Expanded(child: _padRow([_numBtn('1'), _numBtn('2'), _numBtn('3')])),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: _padRow([
-                                _numBtn('C', color: AppColors.roseSoft, textColor: AppColors.rose),
-                                _numBtn('0'),
-                                _numBtn('000'),
-                              ]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Right Side: Form Layout matching requested structure
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: پارەدان
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
                           Text(
-                            'پارەدان',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.ink),
+                            isDebt ? 'بڕی دراو بە نەختینە (لەم وەسڵەدا)' : 'بڕی پێدراو (لەلایەن کڕیارەوە)',
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.inkSoft,
+                            ),
                           ),
+                          const SizedBox(height: 12),
+                          // Input Display
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: (isDebt ? const Color(0xFFD97706) : AppColors.primary).withValues(alpha: 0.3),
+                                width: 2,
+                              ),
                             ),
                             child: Text(
-                              'وەسڵی فرۆشتن',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              _inputAmountStr.isEmpty ? '0' : _currencyFormat.format(_givenAmount),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                                color: isDebt ? const Color(0xFFD97706) : AppColors.primaryDark,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Quick Cash Buttons
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _quickBtn(5000),
+                              _quickBtn(10000),
+                              _quickBtn(25000),
+                              _quickBtn(50000),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Numpad Grid
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(child: _padRow([_numBtn('7'), _numBtn('8'), _numBtn('9')])),
+                                const SizedBox(height: 8),
+                                Expanded(child: _padRow([_numBtn('4'), _numBtn('5'), _numBtn('6')])),
+                                const SizedBox(height: 8),
+                                Expanded(child: _padRow([_numBtn('1'), _numBtn('2'), _numBtn('3')])),
+                                const SizedBox(height: 8),
+                                Expanded(
+                                  child: _padRow([
+                                    _numBtn('C', color: AppColors.roseSoft, textColor: AppColors.rose),
+                                    _numBtn('0'),
+                                    _numBtn('000'),
+                                  ]),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                    ),
+                  ),
 
-                      // Structured Breakdown Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                          boxShadow: AppShadows.card,
-                        ),
-                        child: Column(
-                          children: [
-                            // 1. کۆی پارە
-                            _fieldRow(
-                              title: 'کۆی پارە',
-                              value: '${_currencyFormat.format(widget.totalAmount)} د.ع',
-                              valueColor: AppColors.ink,
-                              isBold: true,
+                  // Right Side: Form Layout matching requested structure
+                  Expanded(
+                    flex: 3,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: پارەدان
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'پارەدان',
+                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.ink),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (isDebt ? const Color(0xFFD97706) : AppColors.primary).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Text(
+                                  isDebt ? 'فرۆشتنی قەرز' : 'فرۆشتنی نەختینە',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDebt ? const Color(0xFFD97706) : AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Structured Breakdown Card
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border),
+                              boxShadow: AppShadows.card,
                             ),
-                            const Divider(height: 16),
-
-                            // 2. جۆری پارەدان (نەختینە یان قەرز)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
                               children: [
-                                Text('جۆری پارەدان', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.inkSoft)),
+                                // 1. کۆی پارە
+                                _fieldRow(
+                                  title: 'کۆی پارە',
+                                  value: '${_currencyFormat.format(widget.totalAmount)} د.ع',
+                                  valueColor: AppColors.ink,
+                                  isBold: true,
+                                ),
+                                const Divider(height: 16),
+
+                                // 2. جۆری پارەدان (نەختینە یان قەرز)
                                 Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    _typeBtn(
-                                      label: '💵 نەختینە',
-                                      selected: _paymentType == 'cash',
-                                      selectedColor: AppColors.primary,
-                                      onTap: () => setState(() => _paymentType = 'cash'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _typeBtn(
-                                      label: '📋 قەرز',
-                                      selected: _paymentType == 'debt',
-                                      selectedColor: const Color(0xFFD97706),
-                                      onTap: () => setState(() => _paymentType = 'debt'),
+                                    Text('جۆری پارەدان', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.inkSoft)),
+                                    Row(
+                                      children: [
+                                        _typeBtn(
+                                          label: '💵 نەختینە',
+                                          selected: _paymentType == 'cash',
+                                          selectedColor: AppColors.primary,
+                                          onTap: () => setState(() => _paymentType = 'cash'),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _typeBtn(
+                                          label: '📋 قەرز',
+                                          selected: _paymentType == 'debt',
+                                          selectedColor: const Color(0xFFD97706),
+                                          onTap: () => setState(() => _paymentType = 'debt'),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
+                                const Divider(height: 16),
+
+                                // 3. بڕی پارەدان لەم وەسڵە
+                                _fieldRow(
+                                  title: isDebt ? 'بڕی دراو (نەختینە)' : 'بڕی پارەدان لەم وەصلە',
+                                  value: '${_currencyFormat.format(_givenAmount)} د.ع',
+                                  valueColor: isDebt ? const Color(0xFF10B981) : AppColors.primary,
+                                  isBold: true,
+                                ),
+                                const Divider(height: 16),
+
+                                // 4. باقی قەرز / ماوە
+                                if (isDebt)
+                                  _fieldRow(
+                                    title: 'باقی قەرز (دەبێتە قەرز)',
+                                    value: '${_currencyFormat.format(_remainingDebt)} د.ع',
+                                    valueColor: _remainingDebt > 0 ? const Color(0xFFD97706) : const Color(0xFF10B981),
+                                    isBold: true,
+                                    isBig: true,
+                                  )
+                                else
+                                  _fieldRow(
+                                    title: 'ماوە (گەڕاوە)',
+                                    value: '${_currencyFormat.format(_changeAmount)} د.ع',
+                                    valueColor: _givenAmount >= widget.totalAmount ? const Color(0xFF10B981) : AppColors.rose,
+                                    isBold: true,
+                                    isBig: true,
+                                  ),
                               ],
                             ),
-                            const Divider(height: 16),
+                          ),
+                          const SizedBox(height: 14),
 
-                            // 3. بڕی پارەدان لەم وەسڵە
-                            _fieldRow(
-                              title: 'بڕی پارەدان لەم وەصلە',
-                              value: '${_currencyFormat.format(_givenAmount)} د.ع',
-                              valueColor: isDebt ? const Color(0xFFD97706) : AppColors.primary,
-                              isBold: true,
-                            ),
-                            const Divider(height: 16),
+                          // Customer fields if Debt is selected
+                          if (isDebt) ...[
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Autocomplete customer name
+                                    Consumer<DebtProvider>(
+                                      builder: (context, debtProv, _) {
+                                        final knownNames = debtProv.allDebts
+                                            .map((d) => d.personName)
+                                            .toSet()
+                                            .toList();
 
-                            // 4. باقی قەرز / ماوە
-                            if (isDebt)
-                              _fieldRow(
-                                title: 'باقی قەرز',
-                                value: '${_currencyFormat.format(_remainingDebt)} د.ع',
-                                valueColor: _remainingDebt > 0 ? AppColors.rose : const Color(0xFF10B981),
-                                isBold: true,
-                                isBig: true,
-                              )
-                            else
-                              _fieldRow(
-                                title: 'ماوە (گەڕاوە)',
-                                value: '${_currencyFormat.format(_changeAmount)} د.ع',
-                                valueColor: _givenAmount >= widget.totalAmount ? const Color(0xFF10B981) : AppColors.rose,
-                                isBold: true,
-                                isBig: true,
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Customer fields if Debt is selected
-                      if (isDebt) ...[
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Autocomplete customer name
-                                Consumer<DebtProvider>(
-                                  builder: (context, debtProv, _) {
-                                    final knownNames = debtProv.allDebts
-                                        .map((d) => d.personName)
-                                        .toSet()
-                                        .toList();
-
-                                    return Autocomplete<String>(
-                                      initialValue: TextEditingValue(text: _customerNameCtrl.text),
-                                      optionsBuilder: (textEditingValue) {
-                                        if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-                                        return knownNames.where((name) =>
-                                            name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                                      },
-                                      onSelected: (selection) {
-                                        _customerNameCtrl.text = selection;
-                                        final match = debtProv.allDebts.firstWhere((d) => d.personName == selection);
-                                        if (match.phone != null) {
-                                          _customerPhoneCtrl.text = match.phone!;
-                                        }
-                                      },
-                                      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                                        return TextField(
-                                          controller: textEditingController,
-                                          focusNode: focusNode,
-                                          onChanged: (v) => _customerNameCtrl.text = v,
-                                          decoration: const InputDecoration(
-                                            labelText: 'ناوی کڕیار (قەرزدار) *',
-                                            prefixIcon: Icon(Icons.person_outline_rounded, size: 18),
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                          ),
+                                        return Autocomplete<String>(
+                                          initialValue: TextEditingValue(text: _customerNameCtrl.text),
+                                          optionsBuilder: (textEditingValue) {
+                                            if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+                                            return knownNames.where((name) =>
+                                                name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                                          },
+                                          onSelected: (selection) {
+                                            _customerNameCtrl.text = selection;
+                                            final match = debtProv.allDebts.firstWhere((d) => d.personName == selection);
+                                            if (match.phone != null) {
+                                              _customerPhoneCtrl.text = match.phone!;
+                                            }
+                                          },
+                                          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                                            return TextField(
+                                              controller: textEditingController,
+                                              focusNode: focusNode,
+                                              onChanged: (v) => _customerNameCtrl.text = v,
+                                              decoration: const InputDecoration(
+                                                labelText: 'ناوی کڕیار (قەرزدار) *',
+                                                prefixIcon: Icon(Icons.person_outline_rounded, size: 18),
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                              ),
+                                            );
+                                          },
                                         );
                                       },
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: _customerPhoneCtrl,
+                                      keyboardType: TextInputType.phone,
+                                      decoration: const InputDecoration(
+                                        labelText: 'ژمارەی مۆبایل (ئارەزوومەندانە)',
+                                        prefixIcon: Icon(Icons.phone_outlined, size: 18),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: _notesCtrl,
+                                      decoration: const InputDecoration(
+                                        labelText: 'تێبینی (ئارەزوومەندانە)',
+                                        prefixIcon: Icon(Icons.notes_rounded, size: 18),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            const Spacer(),
+                          ],
+
+                          const SizedBox(height: 12),
+
+                          // Confirmation Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                if (isDebt) {
+                                  if (_customerNameCtrl.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('تکایە ناوی کڕیار بنووسە')),
                                     );
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: _customerPhoneCtrl,
-                                  keyboardType: TextInputType.phone,
-                                  decoration: const InputDecoration(
-                                    labelText: 'ژمارەی مۆبایل (ئارەزوومەندانە)',
-                                    prefixIcon: Icon(Icons.phone_outlined, size: 18),
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: _notesCtrl,
-                                  decoration: const InputDecoration(
-                                    labelText: 'تێبینی (ئارەزوومەندانە)',
-                                    prefixIcon: Icon(Icons.notes_rounded, size: 18),
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  ),
-                                ),
-                              ],
+                                    return;
+                                  }
+                                  Navigator.pop(
+                                    context,
+                                    PaymentResult(
+                                      confirmed: true,
+                                      isCredit: true,
+                                      customerName: _customerNameCtrl.text.trim(),
+                                      phone: _customerPhoneCtrl.text.trim().isEmpty ? null : _customerPhoneCtrl.text.trim(),
+                                      givenAmount: _givenAmount,
+                                      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+                                    ),
+                                  );
+                                } else {
+                                  if (_givenAmount < widget.totalAmount && _givenAmount > 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('بڕی پێدراو کەمترە لە کۆی پارە! دەتوانیت جۆری پارەدان بکەیتە قەرز.')),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(
+                                    context,
+                                    PaymentResult(
+                                      confirmed: true,
+                                      isCredit: false,
+                                      givenAmount: _givenAmount,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: Icon(isDebt ? Icons.account_balance_wallet_rounded : Icons.check_rounded, size: 20),
+                              label: Text(
+                                isDebt
+                                    ? (_givenAmount > 0
+                                        ? 'تۆمارکردنی قەرز (${_currencyFormat.format(_remainingDebt)} د.ع باقی قەرز)'
+                                        : 'تۆمارکردن بە قەرز (تەواوی بڕەکە)')
+                                    : 'پەسەندکردن و فرۆشتن',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDebt ? const Color(0xFFD97706) : AppColors.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 0,
+                              ),
                             ),
                           ),
-                        ),
-                      ] else ...[
-                        const Spacer(),
-                      ],
+                          const SizedBox(height: 8),
 
-                      const SizedBox(height: 12),
-
-                      // Confirmation Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            if (isDebt) {
-                              if (_customerNameCtrl.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('تکایە ناوی کڕیار بنووسە')),
-                                );
-                                return;
-                              }
-                              Navigator.pop(
-                                context,
-                                PaymentResult(
-                                  confirmed: true,
-                                  isCredit: true,
-                                  customerName: _customerNameCtrl.text.trim(),
-                                  phone: _customerPhoneCtrl.text.trim().isEmpty ? null : _customerPhoneCtrl.text.trim(),
-                                  givenAmount: _givenAmount,
-                                  notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-                                ),
-                              );
-                            } else {
-                              if (_givenAmount < widget.totalAmount && _givenAmount > 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('بڕی پێدراو کەمترە لە کۆی پارە! دەتوانیت جۆری پارەدان بکەیتە قەرز.')),
-                                );
-                                return;
-                              }
-                              Navigator.pop(
-                                context,
-                                PaymentResult(
-                                  confirmed: true,
-                                  isCredit: false,
-                                  givenAmount: _givenAmount,
-                                ),
-                              );
-                            }
-                          },
-                          icon: Icon(isDebt ? Icons.account_balance_wallet_rounded : Icons.check_rounded, size: 20),
-                          label: Text(
-                            isDebt
-                                ? (_remainingDebt > 0
-                                    ? 'تۆمارکردن بە قەرز (${_currencyFormat.format(_remainingDebt)} د.ع باقی قەرز)'
-                                    : 'تۆمارکردن بە قەرز (تەواوی بڕەکە دراوە)')
-                                : 'پەسەندکردن و فرۆشتن',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          // Cancel Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 40,
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context, PaymentResult(confirmed: false)),
+                              style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+                              child: const Text('پاشگەزبوونەوە', style: TextStyle(fontSize: 15)),
+                            ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDebt ? const Color(0xFFD97706) : AppColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 0,
-                          ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-
-                      // Cancel Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 40,
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context, PaymentResult(confirmed: false)),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-                          child: const Text('پاشگەزبوونەوە', style: TextStyle(fontSize: 15)),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

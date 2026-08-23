@@ -423,7 +423,18 @@ CREATE TABLE IF NOT EXISTS debt_payments (
   // ===================== DEBTS & PAYMENTS =====================
   Future<int> insertDebt(Debt debt) async {
     final db = await instance.database;
-    return await db.insert('debts', debt.toMap());
+    return await db.transaction((txn) async {
+      final id = await txn.insert('debts', debt.toMap());
+      if (debt.paidAmount > 0) {
+        await txn.insert('debt_payments', {
+          'debt_id': id,
+          'amount': debt.paidAmount,
+          'date': debt.date.toIso8601String(),
+          'notes': 'پێشەکی / نەختینە لە کاتی کڕین',
+        });
+      }
+      return id;
+    });
   }
 
   Future<int> updateDebt(Debt debt) async {
