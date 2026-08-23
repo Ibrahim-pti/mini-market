@@ -4,6 +4,7 @@ import '../providers/inventory_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/daily_report.dart';
 import '../models/sale_model.dart';
+import '../models/debt_model.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 class ReportsScreen extends StatefulWidget {
@@ -169,13 +170,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     reports.fold<double>(0, (s, r) => s + r.total);
                 final grandProfit =
                     reports.fold<double>(0, (s, r) => s + r.profit);
+                final grandDebtGiven =
+                    reports.fold<double>(0, (s, r) => s + r.debtGiven);
+                final grandDebtCollected =
+                    reports.fold<double>(0, (s, r) => s + r.debtCollected);
                 final grandCount =
                     reports.fold<int>(0, (s, r) => s + r.invoiceCount);
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _summaryRow(grandTotal, grandProfit, grandCount),
+                    _summaryRow(
+                      total: grandTotal,
+                      profit: grandProfit,
+                      debtGiven: grandDebtGiven,
+                      debtCollected: grandDebtCollected,
+                      count: grandCount,
+                    ),
                     const SizedBox(height: 18),
                     Expanded(
                       child: ListView.separated(
@@ -331,7 +342,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Icon(Icons.bar_chart_outlined, size: 64, color: AppColors.muted),
           const SizedBox(height: 16),
           Text(
-            'هیچ فرۆشتنێک نییە لەم ماوەیەدا',
+            'هیچ فرۆشتن یان قەرزێک نییە لەم ماوەیەدا',
             style: TextStyle(
               color: AppColors.inkSoft,
               fontSize: 18,
@@ -343,36 +354,72 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _summaryRow(double total, double profit, int count) {
-    return Row(
-      children: [
-        Expanded(
-          child: _summaryCard(
+  Widget _summaryRow({
+    required double total,
+    required double profit,
+    required double debtGiven,
+    required double debtCollected,
+    required int count,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = [
+          _summaryCard(
             icon: Icons.payments_rounded,
             color: AppColors.emerald,
             label: 'کۆی فرۆشتن',
             value: '${_currencyFormat.format(total)} د.ع',
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _summaryCard(
+          _summaryCard(
             icon: Icons.trending_up_rounded,
             color: AppColors.primary,
             label: 'کۆی قازانج',
             value: '${_currencyFormat.format(profit)} د.ع',
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _summaryCard(
+          _summaryCard(
+            icon: Icons.account_balance_wallet_rounded,
+            color: const Color(0xFFD97706),
+            label: 'فرۆشتن بە قەرز',
+            value: '${_currencyFormat.format(debtGiven)} د.ع',
+          ),
+          _summaryCard(
+            icon: Icons.price_check_rounded,
+            color: const Color(0xFF0D9488),
+            label: 'قەرزی وەرگیراوە',
+            value: '${_currencyFormat.format(debtCollected)} د.ع',
+          ),
+          _summaryCard(
             icon: Icons.receipt_long_rounded,
             color: AppColors.amber,
             label: 'ژمارەی فرۆشراو',
             value: '$count',
           ),
-        ),
-      ],
+        ];
+
+        if (constraints.maxWidth > 900) {
+          return Row(
+            children: cards
+                .map((c) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: c,
+                      ),
+                    ))
+                .toList(),
+          );
+        } else {
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: cards
+                .map((c) => SizedBox(
+                      width: (constraints.maxWidth - 20) / 2,
+                      child: c,
+                    ))
+                .toList(),
+          );
+        }
+      },
     );
   }
 
@@ -383,7 +430,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String value,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -402,22 +449,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(color: AppColors.muted, fontSize: 13),
+                  style: TextStyle(color: AppColors.muted, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             value,
             style: TextStyle(
               color: AppColors.ink,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
@@ -479,6 +526,49 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       '${report.day}  •  ${report.invoiceCount} فرۆشراو',
                       style: TextStyle(color: AppColors.muted, fontSize: 13),
                     ),
+                    if (report.debtGiven > 0 || report.debtCollected > 0) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (report.debtGiven > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD97706).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'قەرز: ${_currencyFormat.format(report.debtGiven)} د.ع',
+                                style: const TextStyle(
+                                  color: Color(0xFFD97706),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          if (report.debtCollected > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D9488).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'وەرگیراوە: ${_currencyFormat.format(report.debtCollected)} د.ع',
+                                style: const TextStyle(
+                                  color: Color(0xFF0D9488),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -513,94 +603,303 @@ class _ReportsScreenState extends State<ReportsScreen> {
     showDialog(
       context: context,
       builder: (ctx) {
-        return Dialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-          child: Container(
-            width: 600,
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
+        return DefaultTabController(
+          length: 3,
+          child: Dialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Icon(Icons.receipt_long_rounded,
-                          color: AppColors.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'فرۆشراوەکانی ${_dayLabel(report.date)} (${report.day})',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.ink,
+            child: Container(
+              width: 650,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Icon(Icons.assessment_rounded,
+                            color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'ڕاپۆرتی ڕۆژی ${_dayLabel(report.date)} (${report.day})',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        '${_currencyFormat.format(report.total)} د.ع',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.emerald,
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          color: AppColors.muted,
+                          tooltip: 'داخستن',
                         ),
+                      ],
+                    ),
+                  ),
+                  TabBar(
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.muted,
+                    indicatorColor: AppColors.primary,
+                    tabs: [
+                      Tab(
+                        icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                        text: 'فرۆشراوەکان (${report.invoiceCount})',
                       ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        color: AppColors.muted,
-                        tooltip: 'داخستن',
+                      Tab(
+                        icon: const Icon(Icons.account_balance_wallet_rounded, size: 18),
+                        text: 'قەرزەکان (${report.debtCount})',
+                      ),
+                      Tab(
+                        icon: const Icon(Icons.price_check_rounded, size: 18),
+                        text: 'وەرگیراوەکان',
                       ),
                     ],
                   ),
-                ),
-                Divider(height: 1, color: AppColors.border),
-                Flexible(
-                  child: FutureBuilder<List<Sale>>(
-                    future: context
-                        .read<InventoryProvider>()
-                        .getSalesForDay(report.day),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      final sales = snapshot.data ?? [];
-                      if (sales.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.all(40),
-                          child: Center(
-                            child: Text(
-                              'هیچ فرۆشراوێک نییە',
-                              style: TextStyle(color: AppColors.muted),
-                            ),
-                          ),
-                        );
-                      }
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: sales.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) => _invoiceTile(sales[i]),
-                      );
-                    },
+                  Divider(height: 1, color: AppColors.border),
+                  Flexible(
+                    child: TabBarView(
+                      children: [
+                        // Tab 1: Sales / Invoices
+                        FutureBuilder<List<Sale>>(
+                          future: context
+                              .read<InventoryProvider>()
+                              .getSalesForDay(report.day),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.all(40),
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final sales = snapshot.data ?? [];
+                            if (sales.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(40),
+                                child: Center(
+                                  child: Text(
+                                    'هیچ فرۆشراوێک نییە',
+                                    style: TextStyle(color: AppColors.muted),
+                                  ),
+                                ),
+                              );
+                            }
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: sales.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, i) =>
+                                  _invoiceTile(sales[i]),
+                            );
+                          },
+                        ),
+                        // Tab 2: Debts created on this day
+                        FutureBuilder<List<Debt>>(
+                          future: context
+                              .read<InventoryProvider>()
+                              .getDebtsForDay(report.day),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.all(40),
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final debts = snapshot.data ?? [];
+                            if (debts.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(40),
+                                child: Center(
+                                  child: Text(
+                                    'هیچ قەرزێک تۆمار نەکراوە لەم ڕۆژەدا',
+                                    style: TextStyle(color: AppColors.muted),
+                                  ),
+                                ),
+                              );
+                            }
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: debts.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, i) => _debtTile(debts[i]),
+                            );
+                          },
+                        ),
+                        // Tab 3: Debt payments collected on this day
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: context
+                              .read<InventoryProvider>()
+                              .getDebtPaymentsForDay(report.day),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.all(40),
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final payments = snapshot.data ?? [];
+                            if (payments.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(40),
+                                child: Center(
+                                  child: Text(
+                                    'هیچ پارەیەکی قەرز وەرنەگیراوەتەوە لەم ڕۆژەدا',
+                                    style: TextStyle(color: AppColors.muted),
+                                  ),
+                                ),
+                              );
+                            }
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: payments.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, i) =>
+                                  _paymentTile(payments[i]),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _debtTile(Debt debt) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: const Color(0xFFD97706).withOpacity(0.12),
+            foregroundColor: const Color(0xFFD97706),
+            child: const Icon(Icons.person_rounded, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  debt.personName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  debt.phone != null && debt.phone!.isNotEmpty
+                      ? debt.phone!
+                      : (debt.notes ?? 'بەبێ تێبینی'),
+                  style: TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${_currencyFormat.format(debt.amount)} د.ع',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Color(0xFFD97706),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'ماوە: ${_currencyFormat.format(debt.remainingAmount)}',
+                style: TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paymentTile(Map<String, dynamic> payment) {
+    final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+    final name = payment['person_name'] as String? ?? 'کڕیار';
+    final notes = payment['notes'] as String? ?? 'وەرگرتنەوەی قەرز';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: const Color(0xFF0D9488).withOpacity(0.12),
+            foregroundColor: const Color(0xFF0D9488),
+            child: const Icon(Icons.price_check_rounded, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  notes,
+                  style: TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${_currencyFormat.format(amount)} د.ع',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Color(0xFF0D9488),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

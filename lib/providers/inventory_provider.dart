@@ -8,6 +8,8 @@ import '../models/sale_model.dart';
 import '../models/expense_model.dart';
 import '../models/shift_model.dart';
 import '../models/daily_report.dart';
+import '../models/debt_model.dart';
+import '../models/debt_payment_model.dart';
 import '../database/database_helper.dart';
 import '../services/backup_service.dart';
 import '../utils/barcode_utils.dart';
@@ -416,12 +418,12 @@ class InventoryProvider with ChangeNotifier {
     return result.map((json) => Sale.fromMap(json)).toList();
   }
 
-  /// Sales grouped by day (newest first): revenue, invoice count and profit.
+  /// Sales and debts grouped by day (newest first): revenue, profit, debt given & collected.
   Future<List<DailySalesReport>> getDailySalesReport() async {
     final db = await _dbHelper.database;
 
     try {
-      // Revenue + invoice count per day.
+      // 1. Revenue + invoice count per day.
       final salesRows = await db.rawQuery('''
         SELECT substr(date, 1, 10) as day,
                COUNT(*) as count,
@@ -432,7 +434,7 @@ class InventoryProvider with ChangeNotifier {
         ORDER BY day DESC
       ''');
 
-      // Profit per day (joins line items and items to get cost_price).
+      // 2. Profit per day (joins line items and items to get cost_price).
       final profitRows = await db.rawQuery('''
         SELECT substr(s.date, 1, 10) as day,
                SUM((COALESCE(si.price, si.price_at_time, 0.0) - COALESCE(si.cost_price, si.cost_at_time, items.cost_price, 0.0)) * si.quantity) as profit
@@ -443,25 +445,111 @@ class InventoryProvider with ChangeNotifier {
         GROUP BY day
       ''');
 
+      // 3. Customer debts given per day.
+      final debtRows = await db.rawQuery('''
+        SELECT substr(date, 1, 10) as day,
+               COUNT(*) as count,
+               SUM(amount) as total
+        FROM debts
+        WHERE date IS NOT NULL AND date != '' AND type = 'customer'
+        GROUP BY day
+      ''');
+
+      // 4. Debt payments collected per day.
+      final paymentRows = await db.rawQuery('''
+        SELECT substr(date, 1, 10) as day,
+               SUM(amount) as total
+        FROM debt_payments
+        WHERE date IS NOT NULL AND date != ''
+        GROUP BY day
+      ''');
+
+      final salesByDay = <String, Map<String, dynamic>>{
+        for (final r in salesRows)
+          if (r['day'] != null && r['day'].toString().isNotEmpty)
+            r['day'].toString(): {
+              'count': (r['count'] as num?)?.toInt() ?? 0,
+              'total': (r['total'] as num?)?.toDouble() ?? 0.0,
+            }
+      };
+
       final profitByDay = <String, double>{
         for (final r in profitRows)
           if (r['day'] != null)
             (r['day'].toString()): (r['profit'] as num?)?.toDouble() ?? 0.0,
       };
 
-      return salesRows
-          .where((r) => r['day'] != null && r['day'].toString().isNotEmpty)
-          .map((r) {
-        final day = r['day'].toString();
+      final debtByDay = <String, Map<String, dynamic>>{
+        for (final r in debtRows)
+          if (r['day'] != null && r['day'].toString().isNotEmpty)
+            r['day'].toString(): {
+              'count': (r['count'] as num?)?.toInt() ?? 0,
+              'total': (r['total'] as num?)?.toDouble() ?? 0.0,
+            }
+      };
+
+      final paymentByDay = <String, double>{
+        for (final r in paymentRows)
+          if (r['day'] != null)
+            (r['day'].toString()): (r['total'] as num?)?.toDouble() ?? 0.0,
+      };
+
+      // Union of all unique days
+      final allDays = <String>{
+        ...salesByDay.keys,
+        ...debtByDay.keys,
+        ...paymentByDay.keys,
+      }.toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      return allDays.map((day) {
+        final saleData = salesByDay[day];
+        final debtData = debtByDay[day];
         return DailySalesReport(
           day: day,
-          invoiceCount: (r['count'] as num?)?.toInt() ?? 0,
-          total: (r['total'] as num?)?.toDouble() ?? 0.0,
+          invoiceCount: saleData?['count'] ?? 0,
+          total: saleData?['total'] ?? 0.0,
           profit: profitByDay[day] ?? 0.0,
+          debtGiven: debtData?['total'] ?? 0.0,
+          debtCount: debtData?['count'] ?? 0,
+          debtCollected: paymentByDay[day] ?? 0.0,
         );
       }).toList();
     } catch (e) {
       debugPrint('Error getting daily sales report: $e');
+      return [];
+    }
+  }
+
+  /// All customer debts recorded on a specific day ('YYYY-MM-DD').
+  Future<List<Debt>> getDebtsForDay(String day) async {
+    final db = await _dbHelper.database;
+    try {
+      final result = await db.rawQuery(
+        'SELECT * FROM debts WHERE substr(date, 1, 10) = ? AND type = ? ORDER BY id DESC',
+        [day, 'customer'],
+      );
+      return result.map((json) => Debt.fromMap(json)).toList();
+    } catch (e) {
+      debugPrint('Error getting debts for day: $e');
+      return [];
+    }
+  }
+
+  /// All debt payments collected on a specific day ('YYYY-MM-DD').
+  Future<List<Map<String, dynamic>>> getDebtPaymentsForDay(String day) async {
+    final db = await _dbHelper.database;
+    try {
+      final rows = await db.rawQuery('''
+        SELECT dp.*, debts.personName as person_name, debts.phone as phone
+        FROM debt_payments dp
+        LEFT JOIN debts ON debts.id = dp.debt_id
+        WHERE substr(dp.date, 1, 10) = ?
+        ORDER BY dp.id DESC
+      ''', [day]);
+      return rows;
+    } catch (e) {
+      debugPrint('Error getting debt payments for day: $e');
       return [];
     }
   }
