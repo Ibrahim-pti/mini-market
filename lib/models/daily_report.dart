@@ -12,7 +12,13 @@ class DailySalesReport {
     required this.profit,
   });
 
-  DateTime get date => DateTime.parse(day);
+  DateTime get date {
+    try {
+      return DateTime.parse(day);
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
 }
 
 /// A single line in an invoice (one product sold).

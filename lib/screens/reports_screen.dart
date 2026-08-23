@@ -4,7 +4,7 @@ import '../providers/inventory_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/daily_report.dart';
 import '../models/sale_model.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});

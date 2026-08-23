@@ -311,16 +311,21 @@ class InventoryProvider with ChangeNotifier {
     final startOfDay =
         DateTime(today.year, today.month, today.day).toIso8601String();
 
-    // Profit = SUM( (price_at_time - cost_at_time) * quantity )
-    final result = await db.rawQuery('''
-      SELECT SUM((price_at_time - cost_at_time) * quantity) as profit 
-      FROM sale_items 
-      INNER JOIN sales ON sales.id = sale_items.sale_id 
-      WHERE sales.date >= ?
-    ''', [startOfDay]);
+    // Profit = SUM( (price - cost_price) * quantity )
+    try {
+      final result = await db.rawQuery('''
+        SELECT SUM((sale_items.price - COALESCE(items.cost_price, 0.0)) * sale_items.quantity) as profit 
+        FROM sale_items 
+        INNER JOIN sales ON sales.id = sale_items.sale_id 
+        LEFT JOIN items ON items.id = sale_items.item_id
+        WHERE sales.date >= ?
+      ''', [startOfDay]);
 
-    if (result.isNotEmpty && result.first['profit'] != null) {
-      return result.first['profit'] as double;
+      if (result.isNotEmpty && result.first['profit'] != null) {
+        return (result.first['profit'] as num).toDouble();
+      }
+    } catch (e) {
+      debugPrint('Error getting today profit: $e');
     }
     return 0.0;
   }
@@ -413,70 +418,91 @@ class InventoryProvider with ChangeNotifier {
   Future<List<DailySalesReport>> getDailySalesReport() async {
     final db = await _dbHelper.database;
 
-    // Revenue + invoice count per day.
-    final salesRows = await db.rawQuery('''
-      SELECT substr(date, 1, 10) as day,
-             COUNT(*) as count,
-             SUM(total_amount) as total
-      FROM sales
-      GROUP BY day
-      ORDER BY day DESC
-    ''');
+    try {
+      // Revenue + invoice count per day.
+      final salesRows = await db.rawQuery('''
+        SELECT substr(date, 1, 10) as day,
+               COUNT(*) as count,
+               SUM(total_amount) as total
+        FROM sales
+        WHERE date IS NOT NULL AND date != ''
+        GROUP BY day
+        ORDER BY day DESC
+      ''');
 
-    // Profit per day (joins line items, so kept as a separate query).
-    final profitRows = await db.rawQuery('''
-      SELECT substr(s.date, 1, 10) as day,
-             SUM((si.price_at_time - si.cost_at_time) * si.quantity) as profit
-      FROM sale_items si
-      INNER JOIN sales s ON s.id = si.sale_id
-      GROUP BY day
-    ''');
+      // Profit per day (joins line items and items to get cost_price).
+      final profitRows = await db.rawQuery('''
+        SELECT substr(s.date, 1, 10) as day,
+               SUM((si.price - COALESCE(items.cost_price, 0.0)) * si.quantity) as profit
+        FROM sale_items si
+        INNER JOIN sales s ON s.id = si.sale_id
+        LEFT JOIN items ON items.id = si.item_id
+        WHERE s.date IS NOT NULL AND s.date != ''
+        GROUP BY day
+      ''');
 
-    final profitByDay = <String, double>{
-      for (final r in profitRows)
-        r['day'] as String: (r['profit'] as num?)?.toDouble() ?? 0.0,
-    };
+      final profitByDay = <String, double>{
+        for (final r in profitRows)
+          if (r['day'] != null)
+            (r['day'].toString()): (r['profit'] as num?)?.toDouble() ?? 0.0,
+      };
 
-    return salesRows.map((r) {
-      final day = r['day'] as String;
-      return DailySalesReport(
-        day: day,
-        invoiceCount: (r['count'] as num?)?.toInt() ?? 0,
-        total: (r['total'] as num?)?.toDouble() ?? 0.0,
-        profit: profitByDay[day] ?? 0.0,
-      );
-    }).toList();
+      return salesRows
+          .where((r) => r['day'] != null && r['day'].toString().isNotEmpty)
+          .map((r) {
+        final day = r['day'].toString();
+        return DailySalesReport(
+          day: day,
+          invoiceCount: (r['count'] as num?)?.toInt() ?? 0,
+          total: (r['total'] as num?)?.toDouble() ?? 0.0,
+          profit: profitByDay[day] ?? 0.0,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error getting daily sales report: $e');
+      return [];
+    }
   }
 
   /// All invoices (sales) recorded on a specific day ('YYYY-MM-DD').
   Future<List<Sale>> getSalesForDay(String day) async {
     final db = await _dbHelper.database;
-    final result = await db.rawQuery(
-      'SELECT * FROM sales WHERE substr(date, 1, 10) = ? ORDER BY date DESC',
-      [day],
-    );
-    return result.map((json) => Sale.fromMap(json)).toList();
+    try {
+      final result = await db.rawQuery(
+        'SELECT * FROM sales WHERE substr(date, 1, 10) = ? ORDER BY date DESC',
+        [day],
+      );
+      return result.map((json) => Sale.fromMap(json)).toList();
+    } catch (e) {
+      debugPrint('Error getting sales for day: $e');
+      return [];
+    }
   }
 
   /// The line items (products) of a single invoice.
   Future<List<SaleLineItem>> getSaleLineItems(int saleId) async {
     final db = await _dbHelper.database;
-    final rows = await db.rawQuery('''
-      SELECT items.name as name,
-             sale_items.quantity as quantity,
-             sale_items.price_at_time as price
-      FROM sale_items
-      LEFT JOIN items ON items.id = sale_items.item_id
-      WHERE sale_items.sale_id = ?
-    ''', [saleId]);
+    try {
+      final rows = await db.rawQuery('''
+        SELECT items.name as name,
+               sale_items.quantity as quantity,
+               sale_items.price as price
+        FROM sale_items
+        LEFT JOIN items ON items.id = sale_items.item_id
+        WHERE sale_items.sale_id = ?
+      ''', [saleId]);
 
-    return rows
-        .map((r) => SaleLineItem(
-              name: (r['name'] as String?) ?? 'کاڵای سڕاوە',
-              quantity: (r['quantity'] as num?)?.toInt() ?? 0,
-              price: (r['price'] as num?)?.toDouble() ?? 0.0,
-            ))
-        .toList();
+      return rows
+          .map((r) => SaleLineItem(
+                name: (r['name'] as String?) ?? 'کاڵای سڕاوە',
+                quantity: (r['quantity'] as num?)?.toInt() ?? 0,
+                price: (r['price'] as num?)?.toDouble() ?? 0.0,
+              ))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting sale line items: $e');
+      return [];
+    }
   }
 
   /// All product lines sold across every invoice of a single day (flat list,
@@ -484,24 +510,29 @@ class InventoryProvider with ChangeNotifier {
   /// directly without drilling into each invoice.
   Future<List<SaleLineItem>> getLineItemsForDay(String day) async {
     final db = await _dbHelper.database;
-    final rows = await db.rawQuery('''
-      SELECT items.name as name,
-             sale_items.quantity as quantity,
-             sale_items.price_at_time as price
-      FROM sale_items
-      JOIN sales ON sales.id = sale_items.sale_id
-      LEFT JOIN items ON items.id = sale_items.item_id
-      WHERE substr(sales.date, 1, 10) = ?
-      ORDER BY sales.date DESC
-    ''', [day]);
+    try {
+      final rows = await db.rawQuery('''
+        SELECT items.name as name,
+               sale_items.quantity as quantity,
+               sale_items.price as price
+        FROM sale_items
+        JOIN sales ON sales.id = sale_items.sale_id
+        LEFT JOIN items ON items.id = sale_items.item_id
+        WHERE substr(sales.date, 1, 10) = ?
+        ORDER BY sales.date DESC
+      ''', [day]);
 
-    return rows
-        .map((r) => SaleLineItem(
-              name: (r['name'] as String?) ?? 'کاڵای سڕاوە',
-              quantity: (r['quantity'] as num?)?.toInt() ?? 0,
-              price: (r['price'] as num?)?.toDouble() ?? 0.0,
-            ))
-        .toList();
+      return rows
+          .map((r) => SaleLineItem(
+                name: (r['name'] as String?) ?? 'کاڵای سڕاوە',
+                quantity: (r['quantity'] as num?)?.toInt() ?? 0,
+                price: (r['price'] as num?)?.toDouble() ?? 0.0,
+              ))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting line items for day: $e');
+      return [];
+    }
   }
 
   Future<List<double>> getWeeklyRevenue() async {
