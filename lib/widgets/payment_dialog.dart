@@ -34,7 +34,7 @@ class PaymentDialog extends StatefulWidget {
 class _PaymentDialogState extends State<PaymentDialog> {
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
   String _inputAmountStr = '';
-  bool _isCredit = false;
+  String _paymentType = 'cash'; // 'cash' or 'debt'
 
   final TextEditingController _customerNameCtrl = TextEditingController();
   final TextEditingController _customerPhoneCtrl = TextEditingController();
@@ -58,7 +58,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
     return _givenAmount - widget.totalAmount;
   }
 
-  double get _debtAmount {
+  double get _remainingDebt {
     if (_givenAmount >= widget.totalAmount) return 0.0;
     return widget.totalAmount - _givenAmount;
   }
@@ -90,10 +90,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final maxH = media.size.height - media.viewInsets.vertical - 48;
-    final maxW = media.size.width - 48;
+    final maxH = media.size.height - media.viewInsets.vertical - 40;
+    final maxW = media.size.width - 40;
     final dialogH = maxH < 650 ? maxH : 650.0;
     final dialogW = maxW < 880 ? maxW : 880.0;
+
+    final isDebt = _paymentType == 'debt';
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -107,7 +109,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           padding: EdgeInsets.zero,
           child: Row(
             children: [
-              // Left Side: Calculator / Quick Fill Numpad
+              // Left Side: Calculator / Numpad
               Expanded(
                 flex: 3,
                 child: Container(
@@ -122,11 +124,9 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   child: Column(
                     children: [
                       Text(
-                        _isCredit
-                            ? 'بڕی پێدراو بە نەختینە (ئەگەر کڕیار بەشێکی دابێت)'
-                            : 'بڕی پێدراو (لەلایەن کڕیارەوە)',
+                        isDebt ? 'بڕی پارەدان لەم وەسڵە (نەختینە)' : 'بڕی پێدراو (لەلایەن کڕیارەوە)',
                         style: TextStyle(
-                          fontSize: 14.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: AppColors.inkSoft,
                         ),
@@ -140,7 +140,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: (_isCredit ? const Color(0xFFD97706) : AppColors.primary).withValues(alpha: 0.3),
+                            color: (isDebt ? const Color(0xFFD97706) : AppColors.primary).withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
@@ -150,7 +150,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
-                            color: _isCredit ? const Color(0xFFD97706) : AppColors.primaryDark,
+                            color: isDebt ? const Color(0xFFD97706) : AppColors.primaryDark,
                           ),
                         ),
                       ),
@@ -172,17 +172,11 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       Expanded(
                         child: Column(
                           children: [
-                            Expanded(
-                              child: _padRow([_numBtn('7'), _numBtn('8'), _numBtn('9')]),
-                            ),
+                            Expanded(child: _padRow([_numBtn('7'), _numBtn('8'), _numBtn('9')])),
                             const SizedBox(height: 8),
-                            Expanded(
-                              child: _padRow([_numBtn('4'), _numBtn('5'), _numBtn('6')]),
-                            ),
+                            Expanded(child: _padRow([_numBtn('4'), _numBtn('5'), _numBtn('6')])),
                             const SizedBox(height: 8),
-                            Expanded(
-                              child: _padRow([_numBtn('1'), _numBtn('2'), _numBtn('3')]),
-                            ),
+                            Expanded(child: _padRow([_numBtn('1'), _numBtn('2'), _numBtn('3')])),
                             const SizedBox(height: 8),
                             Expanded(
                               child: _padRow([
@@ -199,7 +193,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 ),
               ),
 
-              // Right Side: Unified Summary & Credit Checkbox / Fields
+              // Right Side: Form Layout matching requested structure
               Expanded(
                 flex: 3,
                 child: Container(
@@ -207,109 +201,114 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'کورتەی وەسڵ',
-                        style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.ink),
+                      // Header: پارەدان
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'پارەدان',
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.ink),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              'وەسڵی فرۆشتن',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
 
-                      // Totals Summary Box
+                      // Structured Breakdown Card
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.border),
+                          boxShadow: AppShadows.card,
                         ),
                         child: Column(
                           children: [
-                            _summaryRow('کۆی گشتی', widget.totalAmount, AppColors.ink, 18),
+                            // 1. کۆی پارە
+                            _fieldRow(
+                              title: 'کۆی پارە',
+                              value: '${_currencyFormat.format(widget.totalAmount)} د.ع',
+                              valueColor: AppColors.ink,
+                              isBold: true,
+                            ),
                             const Divider(height: 16),
-                            _summaryRow('بڕی پێدراو (نەختینە)', _givenAmount, AppColors.primary, 16),
-                            const SizedBox(height: 6),
-                            if (!_isCredit)
-                              _summaryRow(
-                                'ماوە (گەڕاوە)',
-                                _changeAmount,
-                                _givenAmount >= widget.totalAmount ? AppColors.emerald : AppColors.rose,
-                                18,
+
+                            // 2. جۆری پارەدان (نەختینە یان قەرز)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('جۆری پارەدان', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.inkSoft)),
+                                Row(
+                                  children: [
+                                    _typeBtn(
+                                      label: '💵 نەختینە',
+                                      selected: _paymentType == 'cash',
+                                      selectedColor: AppColors.primary,
+                                      onTap: () => setState(() => _paymentType = 'cash'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _typeBtn(
+                                      label: '📋 قەرز',
+                                      selected: _paymentType == 'debt',
+                                      selectedColor: const Color(0xFFD97706),
+                                      onTap: () => setState(() => _paymentType = 'debt'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 16),
+
+                            // 3. بڕی پارەدان لەم وەسڵە
+                            _fieldRow(
+                              title: 'بڕی پارەدان لەم وەصلە',
+                              value: '${_currencyFormat.format(_givenAmount)} د.ع',
+                              valueColor: isDebt ? const Color(0xFFD97706) : AppColors.primary,
+                              isBold: true,
+                            ),
+                            const Divider(height: 16),
+
+                            // 4. باقی قەرز / ماوە
+                            if (isDebt)
+                              _fieldRow(
+                                title: 'باقی قەرز',
+                                value: '${_currencyFormat.format(_remainingDebt)} د.ع',
+                                valueColor: _remainingDebt > 0 ? AppColors.rose : const Color(0xFF10B981),
+                                isBold: true,
+                                isBig: true,
                               )
                             else
-                              _summaryRow(
-                                'بڕی قەرز (ماوە)',
-                                _debtAmount,
-                                _debtAmount > 0 ? const Color(0xFFD97706) : AppColors.emerald,
-                                18,
+                              _fieldRow(
+                                title: 'ماوە (گەڕاوە)',
+                                value: '${_currencyFormat.format(_changeAmount)} د.ع',
+                                valueColor: _givenAmount >= widget.totalAmount ? const Color(0xFF10B981) : AppColors.rose,
+                                isBold: true,
+                                isBig: true,
                               ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 14),
 
-                      // Credit Checkbox Tile
-                      InkWell(
-                        onTap: () => setState(() => _isCredit = !_isCredit),
-                        borderRadius: BorderRadius.circular(12),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _isCredit ? const Color(0xFFD97706).withValues(alpha: 0.1) : AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _isCredit ? const Color(0xFFD97706) : AppColors.border,
-                              width: _isCredit ? 1.6 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Checkbox(
-                                value: _isCredit,
-                                activeColor: const Color(0xFFD97706),
-                                onChanged: (v) => setState(() => _isCredit = v ?? false),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'فرۆشتن بە قەرز (تۆمارکردن بۆ کڕیار)',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: _isCredit ? const Color(0xFFD97706) : AppColors.ink,
-                                      ),
-                                    ),
-                                    Text(
-                                      _isCredit
-                                          ? (_givenAmount == 0
-                                              ? 'تەواوی بڕەکە (کامل ${_currencyFormat.format(widget.totalAmount)} د.ع) وەک قەرز دەمێنێتەوە'
-                                              : 'بڕی ${_currencyFormat.format(_debtAmount)} د.ع بە قەرز تۆمار دەکرێت')
-                                          : 'ئەگەر پارەی نەختینە نییە چێکی بکە بۆ تۆمارکردنی قەرز',
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        color: _isCredit ? const Color(0xFFD97706) : AppColors.muted,
-                                        fontWeight: _isCredit ? FontWeight.w600 : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Expandable Customer Fields when Credit is Checked
-                      if (_isCredit) ...[
+                      // Customer fields if Debt is selected
+                      if (isDebt) ...[
                         Expanded(
                           child: SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Known Customer Autocomplete
+                                // Autocomplete customer name
                                 Consumer<DebtProvider>(
                                   builder: (context, debtProv, _) {
                                     final knownNames = debtProv.allDebts
@@ -337,7 +336,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                                           focusNode: focusNode,
                                           onChanged: (v) => _customerNameCtrl.text = v,
                                           decoration: const InputDecoration(
-                                            labelText: 'ناوی کڕیار *',
+                                            labelText: 'ناوی کڕیار (قەرزدار) *',
                                             prefixIcon: Icon(Icons.person_outline_rounded, size: 18),
                                             isDense: true,
                                             contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -347,8 +346,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                                     );
                                   },
                                 ),
-                                const SizedBox(height: 10),
-
+                                const SizedBox(height: 8),
                                 TextField(
                                   controller: _customerPhoneCtrl,
                                   keyboardType: TextInputType.phone,
@@ -359,8 +357,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-
+                                const SizedBox(height: 8),
                                 TextField(
                                   controller: _notesCtrl,
                                   decoration: const InputDecoration(
@@ -380,16 +377,16 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
                       const SizedBox(height: 12),
 
-                      // Main Confirmation Button
+                      // Confirmation Button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            if (_isCredit) {
+                            if (isDebt) {
                               if (_customerNameCtrl.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('تکایە ناوی کڕیار دیاری بکە')),
+                                  const SnackBar(content: Text('تکایە ناوی کڕیار بنووسە')),
                                 );
                                 return;
                               }
@@ -407,7 +404,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                             } else {
                               if (_givenAmount < widget.totalAmount && _givenAmount > 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('بڕی پێدراو کەمترە لە کۆی گشتی! دەتوانیت فرۆشتن بە قەرز چێک بکەیت.')),
+                                  const SnackBar(content: Text('بڕی پێدراو کەمترە لە کۆی پارە! دەتوانیت جۆری پارەدان بکەیتە قەرز.')),
                                 );
                                 return;
                               }
@@ -421,17 +418,17 @@ class _PaymentDialogState extends State<PaymentDialog> {
                               );
                             }
                           },
-                          icon: Icon(_isCredit ? Icons.account_balance_wallet_rounded : Icons.check_rounded, size: 20),
+                          icon: Icon(isDebt ? Icons.account_balance_wallet_rounded : Icons.check_rounded, size: 20),
                           label: Text(
-                            _isCredit
-                                ? (_givenAmount > 0
-                                    ? 'تۆمارکردن بە قەرز (${_currencyFormat.format(_debtAmount)} د.ع ماوە)'
-                                    : 'تۆمارکردن بە قەرز (تەواوی بڕەکە)')
+                            isDebt
+                                ? (_remainingDebt > 0
+                                    ? 'تۆمارکردن بە قەرز (${_currencyFormat.format(_remainingDebt)} د.ع باقی قەرز)'
+                                    : 'تۆمارکردن بە قەرز (تەواوی بڕەکە دراوە)')
                                 : 'پەسەندکردن و فرۆشتن',
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _isCredit ? const Color(0xFFD97706) : AppColors.primary,
+                            backgroundColor: isDebt ? const Color(0xFFD97706) : AppColors.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             elevation: 0,
@@ -443,7 +440,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       // Cancel Button
                       SizedBox(
                         width: double.infinity,
-                        height: 42,
+                        height: 40,
                         child: TextButton(
                           onPressed: () => Navigator.pop(context, PaymentResult(confirmed: false)),
                           style: TextButton.styleFrom(foregroundColor: AppColors.muted),
@@ -458,6 +455,66 @@ class _PaymentDialogState extends State<PaymentDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _typeBtn({
+    required String label,
+    required bool selected,
+    required Color selectedColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? selectedColor : AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: selected ? selectedColor : AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: selected ? Colors.white : AppColors.inkSoft,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fieldRow({
+    required String title,
+    required String value,
+    required Color valueColor,
+    bool isBold = false,
+    bool isBig = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: isBig ? 14.5 : 13.5,
+            fontWeight: isBig ? FontWeight.bold : FontWeight.w600,
+            color: AppColors.inkSoft,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isBig ? 17 : 14.5,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: valueColor,
+          ),
+        ),
+      ],
     );
   }
 
@@ -518,20 +575,6 @@ class _PaymentDialogState extends State<PaymentDialog> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _summaryRow(String title, double amount, Color color, double fontSize) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(title, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.inkSoft)),
-        Text(
-          '${_currencyFormat.format(amount)} د.ع',
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: color),
-        ),
-      ],
     );
   }
 }
