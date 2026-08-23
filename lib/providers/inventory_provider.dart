@@ -258,7 +258,9 @@ class InventoryProvider with ChangeNotifier {
       saleItems.add({
         'item_id': cartItem.item.id,
         'quantity': cartItem.quantity,
+        'price': cartItem.item.price,
         'price_at_time': cartItem.item.price,
+        'cost_price': cartItem.item.costPrice,
         'cost_at_time': cartItem.item.costPrice,
       });
       // Deduct inventory
@@ -314,7 +316,7 @@ class InventoryProvider with ChangeNotifier {
     // Profit = SUM( (price - cost_price) * quantity )
     try {
       final result = await db.rawQuery('''
-        SELECT SUM((sale_items.price - COALESCE(items.cost_price, 0.0)) * sale_items.quantity) as profit 
+        SELECT SUM((COALESCE(sale_items.price, sale_items.price_at_time, 0.0) - COALESCE(sale_items.cost_price, sale_items.cost_at_time, items.cost_price, 0.0)) * sale_items.quantity) as profit 
         FROM sale_items 
         INNER JOIN sales ON sales.id = sale_items.sale_id 
         LEFT JOIN items ON items.id = sale_items.item_id
@@ -379,7 +381,7 @@ class InventoryProvider with ChangeNotifier {
   Future<List<Map<String, dynamic>>> getTopSellingItems({int limit = 5}) async {
     final db = await _dbHelper.database;
     final result = await db.rawQuery('''
-      SELECT items.name, items.price, SUM(sale_items.quantity) as total_sold
+      SELECT items.name, COALESCE(sale_items.price, sale_items.price_at_time, items.price) as price, SUM(sale_items.quantity) as total_sold
       FROM sale_items
       INNER JOIN items ON items.id = sale_items.item_id
       GROUP BY items.id
@@ -433,7 +435,7 @@ class InventoryProvider with ChangeNotifier {
       // Profit per day (joins line items and items to get cost_price).
       final profitRows = await db.rawQuery('''
         SELECT substr(s.date, 1, 10) as day,
-               SUM((si.price - COALESCE(items.cost_price, 0.0)) * si.quantity) as profit
+               SUM((COALESCE(si.price, si.price_at_time, 0.0) - COALESCE(si.cost_price, si.cost_at_time, items.cost_price, 0.0)) * si.quantity) as profit
         FROM sale_items si
         INNER JOIN sales s ON s.id = si.sale_id
         LEFT JOIN items ON items.id = si.item_id
@@ -486,7 +488,7 @@ class InventoryProvider with ChangeNotifier {
       final rows = await db.rawQuery('''
         SELECT items.name as name,
                sale_items.quantity as quantity,
-               sale_items.price as price
+               COALESCE(sale_items.price, sale_items.price_at_time, 0.0) as price
         FROM sale_items
         LEFT JOIN items ON items.id = sale_items.item_id
         WHERE sale_items.sale_id = ?
@@ -514,7 +516,7 @@ class InventoryProvider with ChangeNotifier {
       final rows = await db.rawQuery('''
         SELECT items.name as name,
                sale_items.quantity as quantity,
-               sale_items.price as price
+               COALESCE(sale_items.price, sale_items.price_at_time, 0.0) as price
         FROM sale_items
         JOIN sales ON sales.id = sale_items.sale_id
         LEFT JOIN items ON items.id = sale_items.item_id

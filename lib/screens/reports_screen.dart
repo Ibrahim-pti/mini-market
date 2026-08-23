@@ -37,6 +37,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _future = context.read<InventoryProvider>().getDailySalesReport();
   }
 
+  void _refresh() {
+    setState(() {
+      _future = context.read<InventoryProvider>().getDailySalesReport();
+    });
+  }
+
   bool get _hasFilter => _fromDate != null || _toDate != null;
 
   String _dayLabel(DateTime date) {
@@ -118,13 +124,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'ڕاپۆرتی فرۆشتنی ڕۆژانە',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.ink,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'ڕاپۆرتی فرۆشتنی ڕۆژانە',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.ink,
+                ),
+              ),
+              IconButton(
+                onPressed: _refresh,
+                icon: const Icon(Icons.refresh_rounded),
+                color: AppColors.primary,
+                tooltip: 'نوێکردنەوە',
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(

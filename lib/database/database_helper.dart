@@ -58,7 +58,7 @@ class DatabaseHelper {
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 9,
+        version: 10,
         onCreate: _createDB,
         onUpgrade: _upgradeDB,
       ),
@@ -97,6 +97,9 @@ CREATE TABLE sale_items (
   item_id INTEGER NOT NULL,
   quantity INTEGER NOT NULL,
   price REAL NOT NULL,
+  price_at_time REAL,
+  cost_price REAL DEFAULT 0.0,
+  cost_at_time REAL DEFAULT 0.0,
   FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE,
   FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE NO ACTION
 )
@@ -316,6 +319,35 @@ CREATE TABLE IF NOT EXISTS debt_payments (
 )
 ''');
     }
+    if (oldVersion < 10) {
+      // Ensure sale_items table has both price, price_at_time, cost_price, cost_at_time
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN price REAL');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN price_at_time REAL');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN cost_price REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN cost_at_time REAL DEFAULT 0.0');
+      } catch (_) {}
+
+      // Backfill missing column values
+      try {
+        await db.execute('UPDATE sale_items SET price = price_at_time WHERE price IS NULL AND price_at_time IS NOT NULL');
+      } catch (_) {}
+      try {
+        await db.execute('UPDATE sale_items SET price_at_time = price WHERE price_at_time IS NULL AND price IS NOT NULL');
+      } catch (_) {}
+      try {
+        await db.execute('UPDATE sale_items SET cost_price = cost_at_time WHERE cost_price IS NULL AND cost_at_time IS NOT NULL');
+      } catch (_) {}
+      try {
+        await db.execute('UPDATE sale_items SET cost_at_time = cost_price WHERE cost_at_time IS NULL AND cost_price IS NOT NULL');
+      } catch (_) {}
+    }
   }
 
   Future<int> insertItem(Item item) async {
@@ -413,8 +445,18 @@ CREATE TABLE IF NOT EXISTS debt_payments (
       });
 
       for (var item in saleItems) {
-        item['sale_id'] = saleId;
-        await txn.insert('sale_items', item);
+        final price = (item['price'] ?? item['price_at_time'] ?? 0.0) as num;
+        final cost = (item['cost_price'] ?? item['cost_at_time'] ?? 0.0) as num;
+        final cleanItem = <String, dynamic>{
+          'sale_id': saleId,
+          'item_id': item['item_id'],
+          'quantity': item['quantity'],
+          'price': price.toDouble(),
+          'price_at_time': price.toDouble(),
+          'cost_price': cost.toDouble(),
+          'cost_at_time': cost.toDouble(),
+        };
+        await txn.insert('sale_items', cleanItem);
       }
       return saleId;
     });
